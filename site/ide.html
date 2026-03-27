@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src https://pquqtyfezwagzeujweqa.supabase.co https://api.anthropic.com; img-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src https://pquqtyfezwagzeujweqa.supabase.co https://api.anthropic.com https://cdn.jsdelivr.net; img-src 'self' data: blob:;">
 <title>EuroOpenCost | Sovereign IDE</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
@@ -64,7 +64,9 @@
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
 <script>
   require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
-  window.__monacoReady = new Promise(function(resolve) { require(['vs/editor/editor.main'], resolve); });
+  var _monacoLoad = new Promise(function(resolve) { require(['vs/editor/editor.main'], resolve); });
+  var _monacoTimeout = new Promise(function(_, reject) { setTimeout(function(){ reject(new Error('Monaco load timeout')); }, 20000); });
+  window.__monacoReady = Promise.race([_monacoLoad, _monacoTimeout]);
 </script>
 </head>
 <body class="h-full overflow-hidden flex flex-col text-gray-800 font-sans antialiased bg-[#f8f9fa]">
@@ -103,6 +105,7 @@
       <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
       <a href="calculator.html" class="nav-link-mobile">Calculator</a>
       <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="infra.html" class="nav-link-mobile" style="color:#7c3aed;"><i class="fa-solid fa-diagram-project mr-2 text-[11px]"></i>Infra <span class="ml-1.5 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
       <a href="install.html" class="nav-link-mobile">Install</a>
     </nav>
   </div>
