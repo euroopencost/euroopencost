@@ -1,0 +1,111 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "hcloud_network.main",
+          "mode": "managed",
+          "type": "hcloud_network",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hetznercloud/hcloud",
+          "schema_version": 1,
+          "values": {
+            "name": "otc-cost-test-network",
+            "ip_range": "10.0.0.0/8",
+            "expose_routes_to_vswitch": false,
+            "delete_protection": false,
+            "labels": {}
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "hcloud_network_subnet.main",
+          "mode": "managed",
+          "type": "hcloud_network_subnet",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hetznercloud/hcloud",
+          "schema_version": 0,
+          "values": {
+            "network_id": 1,
+            "type": "cloud",
+            "network_zone": "eu-central",
+            "ip_range": "10.0.1.0/24",
+            "vswitch_id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "hcloud_firewall.main",
+          "mode": "managed",
+          "type": "hcloud_firewall",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hetznercloud/hcloud",
+          "schema_version": 0,
+          "values": {
+            "name": "otc-cost-test-firewall",
+            "labels": {}
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "hcloud_server.main",
+          "mode": "managed",
+          "type": "hcloud_server",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hetznercloud/hcloud",
+          "schema_version": 0,
+          "values": {
+            "name": "otc-cost-test-server",
+            "server_type": "cx32",
+            "image": "ubuntu-24.04",
+            "location": "nbg1",
+            "datacenter": null,
+            "backups": false,
+            "backup_window": null,
+            "keep_disk": false,
+            "iso": null,
+            "rescue": null,
+            "user_data": null,
+            "ssh_keys": [],
+            "labels": {},
+            "firewall_ids": [],
+            "placement_group_id": null,
+            "delete_protection": false,
+            "rebuild_protection": false,
+            "allow_deprecated_images": false,
+            "shutdown_before_deletion": false,
+            "ignore_remote_firewall_ids": false,
+            "status": null,
+            "ipv4_address": null,
+            "ipv6_address": null,
+            "ipv6_network": null,
+            "primary_disk_size": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "hcloud_volume.main",
+          "mode": "managed",
+          "type": "hcloud_volume",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hetznercloud/hcloud",
+          "schema_version": 0,
+          "values": {
+            "name": "otc-cost-test-volume",
+            "size": 50,
+            "location": "nbg1",
+            "server_id": null,
+            "automount": null,
+            "format": null,
+            "delete_protection": false,
+            "labels": {},
+            "linux_device": null
+          },
+          "sensitive_values": {}
+        }
+      ]
+    }
+  }
+}

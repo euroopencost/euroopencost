@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src https://pquqtyfezwagzeujweqa.supabase.co; img-src 'self' data:;">
+<title>EuroOpenCost | Reporting</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'eu-blue':'#0a1945','eu-border':'#e5e7eb' },
+        fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'] },
+      }
+    }
+  }
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  .grid-bg { background-color:#f8f9fa; background-image:linear-gradient(to right,#e5e7eb 1px,transparent 1px),linear-gradient(to bottom,#e5e7eb 1px,transparent 1px); background-size:50px 50px; }
+  .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
+  .nav-link:hover { color:#374151; border-color:#d1d5db; }
+  .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+  .history-row { cursor:pointer; transition:background 0.1s; }
+  .history-row:hover { background:#f9fafb; }
+  .history-row.selected { background:#eff6ff !important; }
+  .kpi-card { transition: transform 0.15s, box-shadow 0.15s; }
+  .kpi-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+  .legend-item { cursor:pointer; transition:opacity 0.15s; }
+  .legend-item.toggled-off { opacity:0.35; }
+  .tab-btn { transition:all 0.15s; }
+  .tab-btn.active { background:#0a1945; color:#fff; }
+  @media print {
+    header, .no-print { display:none !important; }
+    body { background:white !important; }
+    .grid-bg { background:none !important; }
+    .print-title { display:block !important; }
+    @page { margin:15mm; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+<body class="text-gray-800 font-sans antialiased overflow-x-hidden min-h-screen grid-bg bg-[#f8f9fa]">
+
+<header class="bg-white/90 backdrop-blur-sm border-b border-eu-border sticky top-0 z-50 no-print">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="audit.html" class="nav-link">Audit Engine <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="policies.html" class="nav-link">Sovereign Policies <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="treasury.html" class="nav-link">Treasury <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link active">Reporting <span id="nav-reporting-lock" class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <a href="index.html#settings" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" title="Settings" style="text-decoration:none;"><i class="fa-solid fa-gear text-sm"></i></a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1"><i class="fa-solid fa-bars text-lg"></i></button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="audit.html" class="nav-link-mobile">Audit Engine <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="policies.html" class="nav-link-mobile">Sovereign Policies <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="treasury.html" class="nav-link-mobile">Treasury <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Gate -->
+  <div id="reporting-gate" class="bg-white border border-eu-border shadow-sm flex flex-col items-center justify-center" style="min-height:400px">
+    <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
+      <i class="fa-solid fa-lock text-yellow-500 mr-2"></i> PREMIUM ACCESS REQUIRED <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+    </p>
+    <a href="index.html#settings" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors" style="text-decoration:none;">UPGRADE TO PRO</a>
+  </div>
+
+  <!-- Main -->
+  <div id="reporting-main" class="hidden space-y-6">
+
+    <div class="print-title hidden mb-6">
+      <h1 class="text-3xl font-normal text-gray-900">EuroOpenCost — Cost Report</h1>
+      <p class="text-xs text-gray-400 mt-1">Generated · <span id="print-date"></span></p>
+    </div>
+
+    <!-- Page header + controls -->
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4">
+      <div>
+        <h1 class="text-4xl font-normal text-gray-900 leading-tight">Reporting</h1>
+        <p class="mt-1 text-xs text-gray-500 uppercase tracking-widest">COST INTELLIGENCE</p>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center no-print">
+        <!-- Date range -->
+        <input type="date" id="filter-date-from" onchange="applyReportingFilters()" class="border border-gray-200 text-xs px-2 py-1.5 focus:outline-none focus:border-eu-blue bg-white" title="From date"/>
+        <span class="text-gray-400 text-xs">—</span>
+        <input type="date" id="filter-date-to" onchange="applyReportingFilters()" class="border border-gray-200 text-xs px-2 py-1.5 focus:outline-none focus:border-eu-blue bg-white" title="To date"/>
+        <!-- Provider filter -->
+        <select id="filter-provider" onchange="applyReportingFilters()" class="border border-gray-200 text-xs px-2 py-1.5 focus:outline-none focus:border-eu-blue bg-white">
+          <option value="">All Providers</option>
+          <option value="hetzner">Hetzner</option>
+          <option value="ovh">OVH</option>
+          <option value="ionos">IONOS</option>
+          <option value="stackit">STACKIT</option>
+          <option value="scaleway">Scaleway</option>
+          <option value="otc">OTC</option>
+          <option value="aws">AWS</option>
+          <option value="gcp">GCP</option>
+          <option value="azure">Azure</option>
+        </select>
+        <!-- View tabs -->
+        <div class="flex border border-gray-200">
+          <button id="tab-history-btn" onclick="switchReportTab('history')" class="tab-btn active text-[10px] font-semibold px-3 py-1.5 uppercase tracking-wider">History</button>
+          <button id="tab-proj-btn" onclick="switchReportTab('projections')" class="tab-btn text-[10px] font-semibold px-3 py-1.5 uppercase tracking-wider text-gray-500 hover:bg-gray-50 border-l border-gray-200">Projections</button>
+        </div>
+        <!-- Export group -->
+        <button onclick="clearHistory()" class="border border-gray-200 text-gray-500 text-xs font-medium px-3 py-1.5 hover:bg-gray-50 transition-colors">
+          <i class="fa-solid fa-trash-can text-[10px] mr-1"></i> Clear
+        </button>
+        <div class="flex">
+          <button onclick="exportPDF()" class="bg-eu-blue text-white px-3 py-1.5 text-xs font-medium hover:bg-blue-900 transition-colors">
+            <i class="fa-solid fa-file-pdf mr-1"></i> PDF
+          </button>
+          <button onclick="exportCSV()" class="border-l border-blue-800 bg-eu-blue text-white px-3 py-1.5 text-xs font-medium hover:bg-blue-900 transition-colors" title="Export CSV">
+            <i class="fa-solid fa-table mr-1"></i> CSV
+          </button>
+          <button onclick="exportAllJSON()" class="border-l border-blue-800 bg-eu-blue text-white px-3 py-1.5 text-xs font-medium hover:bg-blue-900 transition-colors" title="Export JSON">
+            <i class="fa-solid fa-brackets-curly mr-1"></i> JSON
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- No data -->
+    <div id="no-data" class="hidden bg-white border border-eu-border shadow-sm p-16 text-center">
+      <i class="fa-solid fa-chart-pie text-gray-200 text-5xl block mb-4"></i>
+      <p class="text-sm font-semibold text-gray-500 mb-1">No analysis history yet</p>
+      <p class="text-xs text-gray-400">Run your first plan in the <a href="audit.html" class="text-eu-blue underline">Audit Engine</a> or <a href="ide.html" class="text-eu-blue underline">Web IDE</a>.</p>
+    </div>
+
+    <!-- ═══════════════ HISTORY VIEW ═══════════════ -->
+    <div id="history-view" class="space-y-6">
+
+      <!-- KPI cards -->
+      <div id="kpi-row" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="kpi-card bg-white border border-eu-border shadow-sm p-5">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Total Analyses</div>
+          <div id="kpi-analyses" class="text-3xl font-light text-eu-blue tabular-nums">—</div>
+          <div class="text-[10px] text-gray-400 mt-1">audit runs</div>
+        </div>
+        <div class="kpi-card bg-white border border-eu-border shadow-sm p-5">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Latest €/month</div>
+          <div id="kpi-latest" class="text-3xl font-light text-eu-blue tabular-nums">—</div>
+          <div class="text-[10px] text-gray-400 mt-1" id="kpi-latest-date">—</div>
+        </div>
+        <div class="kpi-card bg-white border border-eu-border shadow-sm p-5">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Avg Sovereign Score</div>
+          <div id="kpi-score" class="text-3xl font-light text-green-600 tabular-nums">—</div>
+          <div class="text-[10px] text-gray-400 mt-1">across all runs</div>
+        </div>
+        <div class="kpi-card bg-white border border-eu-border shadow-sm p-5">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Resources Tracked</div>
+          <div id="kpi-resources" class="text-3xl font-light text-gray-700 tabular-nums">—</div>
+          <div class="text-[10px] text-gray-400 mt-1">total across all runs</div>
+        </div>
+      </div>
+
+      <!-- Charts row 1: Provider donut + Stacked bar -->
+      <div id="charts-row1" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Donut: Cost by provider -->
+        <div class="bg-white border border-eu-border shadow-sm p-6 lg:col-span-1">
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Cost by Provider</h2>
+            <span id="chart1-subtitle" class="text-[10px] text-gray-400">Latest run</span>
+          </div>
+          <p class="text-[9px] text-gray-400 mb-4">Click segment to drill down</p>
+          <div class="flex flex-col items-center gap-5">
+            <div class="relative" style="width:180px;height:180px">
+              <canvas id="chart-provider"></canvas>
+            </div>
+            <div id="chart-provider-legend" class="w-full space-y-1.5"></div>
+          </div>
+        </div>
+        <!-- Stacked bar: Cost over time by provider -->
+        <div class="bg-white border border-eu-border shadow-sm p-6 lg:col-span-2">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Cost Over Time by Provider</h2>
+            <span class="text-[10px] text-gray-400">Last 10 runs</span>
+          </div>
+          <div style="height:230px">
+            <canvas id="chart-stacked"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row 2: Sovereignty donut + Top resources horizontal bar -->
+      <div id="charts-row2" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Donut: EU sovereign ratio -->
+        <div class="bg-white border border-eu-border shadow-sm p-6 lg:col-span-1">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Sovereignty Breakdown</h2>
+            <span class="text-[10px] text-gray-400">Latest run</span>
+          </div>
+          <div class="flex flex-col items-center gap-5">
+            <div class="relative" style="width:180px;height:180px">
+              <canvas id="chart-sovereign"></canvas>
+            </div>
+            <div id="chart-sovereign-legend" class="w-full space-y-1.5"></div>
+          </div>
+        </div>
+        <!-- Horizontal bar: Top resources by cost -->
+        <div class="bg-white border border-eu-border shadow-sm p-6 lg:col-span-2">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Top Resources by Cost</h2>
+            <span class="text-[10px] text-gray-400">Latest run · top 8</span>
+          </div>
+          <div style="height:230px">
+            <canvas id="chart-top-resources"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Provider drill-down (appears on donut click) -->
+      <div id="provider-drilldown" class="hidden bg-white border border-eu-blue shadow-sm">
+        <div class="px-5 py-3 border-b border-eu-border flex items-center justify-between">
+          <h2 class="text-[10px] font-semibold text-eu-blue uppercase tracking-widest">
+            <i class="fa-solid fa-filter mr-1.5"></i>Provider Drill-Down:
+            <span id="drilldown-provider-name" class="text-gray-700 ml-1"></span>
+          </h2>
+          <button onclick="closeDrilldown()" class="text-gray-300 hover:text-gray-600 text-xs"><i class="fa-solid fa-xmark mr-1"></i>Close</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-eu-border bg-gray-50/60">
+                <th class="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Resource</th>
+                <th class="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Type</th>
+                <th class="text-right px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">€/month</th>
+                <th class="text-center px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">EU</th>
+              </tr>
+            </thead>
+            <tbody id="drilldown-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- History table -->
+      <div id="history-section" class="hidden bg-white border border-eu-border shadow-sm">
+        <div class="flex justify-between items-center px-5 py-3.5 border-b border-eu-border">
+          <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Analysis History</h2>
+          <span class="text-[10px] text-gray-400 no-print">Click a row to see resource breakdown</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-eu-border bg-gray-50/60">
+                <th class="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider w-8">#</th>
+                <th class="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                <th class="text-right px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Resources</th>
+                <th class="text-right px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">€/month</th>
+                <th class="text-center px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Score</th>
+                <th class="text-center px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resource breakdown (selected run) -->
+      <div id="breakdown-section" class="hidden bg-white border border-eu-border shadow-sm">
+        <div class="px-5 py-3.5 border-b border-eu-border flex justify-between items-center">
+          <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Resource Breakdown — <span id="breakdown-label" class="text-eu-blue">Latest Run</span></h2>
+          <div class="flex gap-2 no-print">
+            <button onclick="downloadSelectedHTML()" class="flex items-center gap-1 bg-eu-blue text-white text-[10px] font-medium px-3 py-1.5 hover:bg-blue-900">
+              <i class="fa-solid fa-file-code text-[9px]"></i> HTML
+            </button>
+            <button onclick="downloadSelectedCSV()" class="flex items-center gap-1 border border-eu-border text-gray-600 text-[10px] font-medium px-3 py-1.5 hover:bg-gray-50">
+              <i class="fa-solid fa-table text-[9px]"></i> CSV
+            </button>
+            <button onclick="downloadSelectedJSON()" class="flex items-center gap-1 border border-eu-border text-gray-600 text-[10px] font-medium px-3 py-1.5 hover:bg-gray-50">
+              <i class="fa-solid fa-brackets-curly text-[9px]"></i> JSON
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-eu-border bg-gray-50/60">
+                <th class="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Resource</th>
+                <th class="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Type / Service</th>
+                <th class="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Provider</th>
+                <th class="text-right px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">€/hour</th>
+                <th class="text-right px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">€/month</th>
+                <th class="text-center px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">EU</th>
+              </tr>
+            </thead>
+            <tbody id="breakdown-tbody"></tbody>
+            <tfoot>
+              <tr class="border-t-2 border-eu-blue bg-eu-blue/5">
+                <td colspan="3" class="px-5 py-3 text-xs font-bold text-eu-blue uppercase tracking-wider hidden md:table-cell">TOTAL</td>
+                <td colspan="3" class="px-5 py-3 text-xs font-bold text-eu-blue uppercase tracking-wider md:hidden">TOTAL</td>
+                <td id="breakdown-total-hourly" class="px-5 py-3 text-right text-xs font-bold text-eu-blue tabular-nums hidden md:table-cell"></td>
+                <td id="breakdown-total" class="px-5 py-3 text-right text-xs font-bold text-eu-blue tabular-nums"></td>
+                <td class="hidden sm:table-cell"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /history-view -->
+
+    <!-- ═══════════════ PROJECTIONS VIEW ═══════════════ -->
+    <div id="projections-view" class="hidden space-y-6">
+      <div class="bg-white border border-eu-border shadow-sm p-6">
+        <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Cost Projections</h2>
+        <p class="text-xs text-gray-500 mb-6">Based on your latest analysis run. Shows projected costs at different infrastructure scales.</p>
+        <div id="proj-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"></div>
+        <div style="height:240px">
+          <canvas id="chart-projections"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /reporting-main -->
+</div>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+// ── Supabase anon key is a public JWT safe to expose in client code.
+// It grants only Row Level Security (RLS)-filtered access.
+// Auth is enforced server-side by Supabase. See: https://supabase.com/docs/guides/api/api-keys
+const SUPABASE_URL      = 'https://pquqtyfezwagzeujweqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdXF0eWZlendhZ3pldWp3ZXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTk5ODIsImV4cCI6MjA5MDE3NTk4Mn0.SP8ZvG64595-IflvEhZTodWVzGJYoqszfj1zlRGR66M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let authUser = null, authProfile = null;
+function isPro() { return authProfile?.is_pro === true; }
+
+function fmt2(n) { return Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt4(n) { return Number(n||0).toFixed(4); }
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast'), m = document.getElementById('toast-msg');
+  if (!t||!m) return;
+  m.textContent = msg;
+  t.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none '+(isError?'bg-red-600':'bg-eu-blue');
+  t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0';},3000);
+}
+
+// ── Provider palette ───────────────────────────────────────────────────────
+const PROVIDER_META = {
+  hetzner:  { label:'Hetzner',   color:'#DC2626', eu:true  },
+  otc:      { label:'OTC',       color:'#D97706', eu:true  },
+  ionos:    { label:'IONOS',     color:'#2563EB', eu:true  },
+  stackit:  { label:'STACKIT',   color:'#059669', eu:true  },
+  scaleway: { label:'Scaleway',  color:'#7C3AED', eu:true  },
+  ovh:      { label:'OVH',       color:'#0891B2', eu:true  },
+  aws:      { label:'AWS',       color:'#F59E0B', eu:false },
+  gcp:      { label:'GCP',       color:'#3B82F6', eu:false },
+  azure:    { label:'Azure',     color:'#0EA5E9', eu:false },
+  other:    { label:'Other',     color:'#9CA3AF', eu:true  },
+};
+
+// ── Field accessors ────────────────────────────────────────────────────────
+function rName(r) {
+  return r.name || r.address || r.Name || r.Address ||
+    (r.type ? r.type.split('_').slice(-2).join(' ') : null) || '—';
+}
+function rMonthly(r) { return parseFloat(r.monthly_price ?? r.MonthlyPrice ?? r.monthly ?? 0) || 0; }
+function rHourly(r)  { return parseFloat(r.hourly_price ?? r.HourlyPrice ?? r.hourly ?? 0) || 0; }
+function rType(r) {
+  return r.display_type || r.DisplayType || r.service_name || r.ServiceName || r.type || r.Type || '—';
+}
+function rProviderKey(r) {
+  const p = (r.provider || r.Provider || '').toLowerCase();
+  if (p.includes('hetzner') || p.includes('hcloud')) return 'hetzner';
+  if (p.includes('otc') || p.includes('opentelekomcloud')) return 'otc';
+  if (p.includes('ionos')) return 'ionos';
+  if (p.includes('stackit')) return 'stackit';
+  if (p.includes('scaleway')) return 'scaleway';
+  if (p.includes('ovh')) return 'ovh';
+  if (p.includes('aws') || p.includes('amazon')) return 'aws';
+  if (p.includes('gcp') || p.includes('google')) return 'gcp';
+  if (p.includes('azure')) return 'azure';
+  if (p === 'eu') return 'hetzner';
+  if (p === 'non-eu') return 'aws';
+  const t = (r.type || r.Type || '').toLowerCase();
+  if (t.startsWith('hcloud')) return 'hetzner';
+  if (t.startsWith('opentelekomcloud')) return 'otc';
+  if (t.startsWith('ionos')) return 'ionos';
+  if (t.startsWith('stackit')) return 'stackit';
+  if (t.startsWith('scaleway')) return 'scaleway';
+  if (t.startsWith('ovh')) return 'ovh';
+  if (t.startsWith('aws')) return 'aws';
+  if (t.startsWith('google')) return 'gcp';
+  if (t.startsWith('azurerm')) return 'azure';
+  return 'other';
+}
+function rIsEU(r) {
+  if (r.sovereign !== undefined) return !!r.sovereign;
+  return PROVIDER_META[rProviderKey(r)]?.eu ?? true;
+}
+function getResources(entry) { return entry?.data?.resources || []; }
+
+// ── Security: schema validation for localStorage ───────────────────────────
+function validateHistorySchema(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(entry => {
+    try {
+      return (
+        typeof entry === 'object' && entry !== null &&
+        typeof entry.date === 'string' && entry.date.length < 200 &&
+        typeof entry.monthly === 'number' && isFinite(entry.monthly) && entry.monthly >= 0 &&
+        typeof entry.score === 'number' && entry.score >= 0 && entry.score <= 100 &&
+        typeof entry.resources === 'number' && entry.resources >= 0
+      );
+    } catch { return false; }
+  });
+}
+
+// ── Chart.js center-text plugin ────────────────────────────────────────────
+const centerTextPlugin = {
+  id: 'centerText',
+  afterDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const ct = chart.options.plugins?.centerText;
+    if (!ct || !ct.text) return;
+    const { ctx } = chart;
+    const { left, right, top, bottom } = chart.chartArea || {};
+    if (!left) return;
+    const cx = (left + right) / 2;
+    const cy = (top + bottom) / 2;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `bold ${ct.fontSize||20}px Inter, sans-serif`;
+    ctx.fillStyle = ct.color || '#0a1945';
+    ctx.fillText(ct.text, cx, cy - (ct.sub ? 10 : 0));
+    if (ct.sub) {
+      ctx.font = `${ct.subSize||11}px Inter, sans-serif`;
+      ctx.fillStyle = ct.subColor || '#6b7280';
+      ctx.fillText(ct.sub, cx, cy + 14);
+    }
+    ctx.restore();
+  }
+};
+Chart.register(centerTextPlugin);
+
+// ── Charts ─────────────────────────────────────────────────────────────────
+let chartProvider = null, chartStacked = null, chartSovereign = null, chartTopRes = null, chartProjections = null;
+
+// Build clickable DOM legend (no innerHTML for dynamic values)
+function buildClickableLegend(containerId, keys, labels, colors, vals, total, chartRef) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  while (container.firstChild) container.removeChild(container.firstChild);
+  keys.forEach((k, i) => {
+    const item = document.createElement('div');
+    item.className = 'legend-item flex justify-between items-center py-1';
+    item.dataset.idx = i;
+    item.addEventListener('click', () => {
+      if (!chartRef) return;
+      chartRef.toggleDataVisibility(i);
+      chartRef.update();
+      item.classList.toggle('toggled-off');
+    });
+    const left = document.createElement('div');
+    left.className = 'flex items-center gap-2';
+    const dot = document.createElement('div');
+    dot.className = 'w-2.5 h-2.5 rounded-sm flex-shrink-0';
+    dot.style.background = colors[i];
+    left.appendChild(dot);
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'text-xs text-gray-600';
+    nameSpan.textContent = labels[i];
+    left.appendChild(nameSpan);
+    if (k && PROVIDER_META[k]) {
+      const badge = document.createElement('span');
+      badge.className = 'text-[9px] font-bold ml-1 ' + (PROVIDER_META[k].eu ? 'text-green-600' : 'text-gray-400');
+      badge.textContent = PROVIDER_META[k].eu ? 'EU' : 'non-EU';
+      left.appendChild(badge);
+    }
+    const right = document.createElement('div');
+    right.className = 'text-right';
+    const costSpan = document.createElement('span');
+    costSpan.className = 'text-xs font-bold text-eu-blue';
+    costSpan.textContent = '€' + fmt2(vals[i]);
+    right.appendChild(costSpan);
+    if (total > 0) {
+      const pctSpan = document.createElement('span');
+      pctSpan.className = 'text-[9px] text-gray-400 ml-1';
+      pctSpan.textContent = Math.round(vals[i] / total * 100) + '%';
+      right.appendChild(pctSpan);
+    }
+    item.appendChild(left);
+    item.appendChild(right);
+    container.appendChild(item);
+  });
+}
+
+function buildProviderChart(resources) {
+  const map = {};
+  resources.forEach(r => { const k = rProviderKey(r); map[k] = (map[k] || 0) + rMonthly(r); });
+  const keys = Object.keys(map).filter(k => map[k] > 0);
+  const vals = keys.map(k => map[k]);
+  const colors = keys.map(k => PROVIDER_META[k]?.color || '#6b7280');
+  const labels = keys.map(k => PROVIDER_META[k]?.label || k.toUpperCase());
+  const total = vals.reduce((s, v) => s + v, 0);
+  if (chartProvider) chartProvider.destroy();
+  chartProvider = new Chart(document.getElementById('chart-provider'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 3, borderColor: '#fff', hoverBorderColor: '#fff', hoverOffset: 10 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '70%',
+      animation: { duration: 900, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const pct = Math.round(ctx.parsed / total * 100);
+              const eu = PROVIDER_META[keys[ctx.dataIndex]]?.eu;
+              return [
+                ' ' + labels[ctx.dataIndex] + ': €' + fmt2(ctx.parsed) + '/mo',
+                ' ' + pct + '% of total' + (eu !== undefined ? (eu ? '  ·  EU ✓' : '  ·  non-EU') : '')
+              ];
+            }
+          }
+        },
+        centerText: { text: '€' + fmt2(total), sub: 'total/mo', color: '#0a1945', subColor: '#6b7280', fontSize: 16, subSize: 10 }
+      },
+      onClick(event, elements) {
+        if (elements.length > 0) showProviderDrilldown(keys[elements[0].index]);
+      }
+    }
+  });
+  buildClickableLegend('chart-provider-legend', keys, labels, colors, vals, total, chartProvider);
+}
+
+function buildStackedBarChart(history) {
+  const data = history.slice(0, 10).reverse();
+  // Collect all provider keys across all entries
+  const allKeys = new Set();
+  data.forEach(h => getResources(h).forEach(r => allKeys.add(rProviderKey(r))));
+  const providerKeys = [...allKeys];
+  const datasets = providerKeys.map(k => {
+    const meta = PROVIDER_META[k] || PROVIDER_META.other;
+    return {
+      label: meta.label,
+      data: data.map(h => {
+        const res = getResources(h);
+        return res.filter(r => rProviderKey(r) === k).reduce((s, r) => s + rMonthly(r), 0);
+      }),
+      backgroundColor: meta.color,
+      borderRadius: 2, borderSkipped: false
+    };
+  });
+  if (!datasets.length) return;
+  if (chartStacked) chartStacked.destroy();
+  chartStacked = new Chart(document.getElementById('chart-stacked'), {
+    type: 'bar',
+    data: { labels: data.map(h => h.date.split(',')[0]), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 700, easing: 'easeInOutQuart' },
+      plugins: {
+        datalabels: { display: false },
+        legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 9 }, color: '#6b7280' } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': €' + fmt2(ctx.parsed.y) + '/mo' } }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 30, color: '#9ca3af' } },
+        y: { stacked: true, grid: { color: '#f3f4f6' }, ticks: { callback: v => '€' + fmt2(v), font: { size: 9 }, color: '#9ca3af' } }
+      }
+    }
+  });
+}
+
+function buildSovereignChart(resources) {
+  const euCost = resources.filter(r => rIsEU(r)).reduce((s, r) => s + rMonthly(r), 0);
+  const nonEuCost = resources.reduce((s, r) => s + rMonthly(r), 0) - euCost;
+  const total = euCost + nonEuCost;
+  const euPct = total > 0 ? Math.round(euCost / total * 100) : 100;
+  const vals = [euCost, nonEuCost];
+  const colors = ['#10b981', '#e5e7eb'];
+  const labels = ['EU Sovereign', 'Non-EU'];
+  if (chartSovereign) chartSovereign.destroy();
+  chartSovereign = new Chart(document.getElementById('chart-sovereign'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 3, borderColor: '#fff', hoverOffset: 10 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '70%',
+      animation: { duration: 900, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + labels[ctx.dataIndex] + ': €' + fmt2(ctx.parsed) + '/mo' } },
+        centerText: { text: euPct + '%', sub: 'sovereign', color: '#059669', subColor: '#6b7280', fontSize: 20, subSize: 10 }
+      }
+    }
+  });
+  buildClickableLegend('chart-sovereign-legend', [null, null], labels, colors, vals, total, chartSovereign);
+}
+
+function buildTopResourcesChart(resources) {
+  const sorted = [...resources].sort((a, b) => rMonthly(b) - rMonthly(a)).slice(0, 8);
+  const labels = sorted.map(r => {
+    const n = rName(r);
+    return n.length > 22 ? n.slice(0, 20) + '…' : n;
+  });
+  const vals = sorted.map(r => rMonthly(r));
+  const bgColors = sorted.map(r => PROVIDER_META[rProviderKey(r)]?.color || '#9ca3af');
+  if (chartTopRes) chartTopRes.destroy();
+  chartTopRes = new Chart(document.getElementById('chart-top-resources'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: bgColors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 700, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false },
+        tooltip: { callbacks: { label: ctx => ' €' + fmt2(ctx.parsed.x) + '/mo · ' + (PROVIDER_META[rProviderKey(sorted[ctx.dataIndex])]?.label || '') } }
+      },
+      scales: {
+        x: { grid: { color: '#f3f4f6' }, ticks: { callback: v => '€' + fmt2(v), font: { size: 9 }, color: '#9ca3af' } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#374151' } }
+      }
+    }
+  });
+}
+
+function buildProjectionsChart(baseMonthly) {
+  const scales = [1, 2, 5, 10];
+  const colors = ['#0a1945', '#3b82f6', '#f59e0b', '#dc2626'];
+  if (chartProjections) chartProjections.destroy();
+  chartProjections = new Chart(document.getElementById('chart-projections'), {
+    type: 'bar',
+    data: {
+      labels: scales.map(s => s + 'x Infrastructure'),
+      datasets: [{
+        label: 'Monthly Cost',
+        data: scales.map(s => baseMonthly * s),
+        backgroundColor: colors,
+        borderRadius: 4, borderSkipped: false
+      }, {
+        label: 'Annual Cost',
+        data: scales.map(s => baseMonthly * s * 12),
+        backgroundColor: colors.map(c => c + '55'),
+        borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 700 },
+      plugins: {
+        datalabels: { display: false },
+        legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 9 }, color: '#6b7280' } },
+        tooltip: { callbacks: { label: ctx => ' €' + fmt2(ctx.parsed.y) + (ctx.datasetIndex === 0 ? '/mo' : '/yr') } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#9ca3af' } },
+        y: { grid: { color: '#f3f4f6' }, ticks: { callback: v => '€' + fmt2(v), font: { size: 9 }, color: '#9ca3af' } }
+      }
+    }
+  });
+}
+
+function renderProjectionCards(base) {
+  const container = document.getElementById('proj-cards');
+  if (!container) return;
+  while (container.firstChild) container.removeChild(container.firstChild);
+  const configs = [
+    { scale: 1, label: '1× Current',  highlight: false },
+    { scale: 2, label: '2× Scale',    highlight: true  },
+    { scale: 5, label: '5× Scale',    highlight: false },
+  ];
+  configs.forEach(cfg => {
+    const card = document.createElement('div');
+    card.className = 'border p-5 ' + (cfg.highlight ? 'border-eu-blue ring-1 ring-eu-blue' : 'border-eu-border');
+    const label = document.createElement('div');
+    label.className = 'text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3';
+    label.textContent = cfg.label;
+    card.appendChild(label);
+    const monthly = document.createElement('div');
+    monthly.className = 'text-3xl font-light text-eu-blue tabular-nums';
+    monthly.textContent = '€' + fmt2(base * cfg.scale);
+    card.appendChild(monthly);
+    const mLabel = document.createElement('div');
+    mLabel.className = 'text-[10px] text-gray-400 mt-1';
+    mLabel.textContent = 'per month';
+    card.appendChild(mLabel);
+    const annual = document.createElement('div');
+    annual.className = 'text-sm text-gray-500 mt-3 font-medium';
+    annual.textContent = '€' + fmt2(base * cfg.scale * 12) + ' / year';
+    card.appendChild(annual);
+    if (cfg.scale > 1) {
+      const delta = document.createElement('div');
+      delta.className = 'text-[10px] text-red-500 mt-1';
+      delta.textContent = '+€' + fmt2(base * (cfg.scale - 1)) + '/mo vs current';
+      card.appendChild(delta);
+    }
+    container.appendChild(card);
+  });
+}
+
+// ── Provider drill-down ────────────────────────────────────────────────────
+function showProviderDrilldown(providerKey) {
+  const entry = historyData[selectedIdx];
+  if (!entry) return;
+  const resources = getResources(entry).filter(r => rProviderKey(r) === providerKey);
+  const meta = PROVIDER_META[providerKey] || PROVIDER_META.other;
+  const nameEl = document.getElementById('drilldown-provider-name');
+  if (nameEl) nameEl.textContent = meta.label;
+  const tbody = document.getElementById('drilldown-tbody');
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  if (!resources.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 4; td.className = 'px-5 py-8 text-center text-xs text-gray-400';
+    td.textContent = 'No resources for this provider in the selected run.';
+    tr.appendChild(td); tbody.appendChild(tr);
+  } else {
+    resources.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-gray-50 hover:bg-gray-50/60';
+      const cells = [
+        { cls: 'px-5 py-3 text-xs font-medium text-eu-blue', text: rName(r) },
+        { cls: 'px-5 py-3 text-xs text-gray-500 hidden sm:table-cell', text: rType(r) },
+        { cls: 'px-5 py-3 text-right text-xs font-bold text-eu-blue tabular-nums', text: '€' + fmt2(rMonthly(r)) },
+      ];
+      cells.forEach(c => {
+        const td = document.createElement('td');
+        td.className = c.cls; td.textContent = c.text; tr.appendChild(td);
+      });
+      const tdEU = document.createElement('td');
+      tdEU.className = 'px-5 py-3 text-center hidden sm:table-cell';
+      const icon = document.createElement('i');
+      icon.className = rIsEU(r) ? 'fa-solid fa-shield-halved text-green-500 text-sm' : 'fa-solid fa-triangle-exclamation text-amber-400 text-sm';
+      tdEU.appendChild(icon); tr.appendChild(tdEU);
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('provider-drilldown').classList.remove('hidden');
+  document.getElementById('provider-drilldown').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeDrilldown() {
+  document.getElementById('provider-drilldown').classList.add('hidden');
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchReportTab(tab) {
+  const isHistory = tab === 'history';
+  document.getElementById('history-view').classList.toggle('hidden', !isHistory);
+  document.getElementById('projections-view').classList.toggle('hidden', isHistory);
+  document.getElementById('tab-history-btn').classList.toggle('active', isHistory);
+  document.getElementById('tab-proj-btn').classList.toggle('active', !isHistory);
+  if (!isHistory && historyData.length) {
+    const base = historyData[0].monthly || 0;
+    renderProjectionCards(base);
+    buildProjectionsChart(base);
+  }
+}
+
+// ── Filtering ──────────────────────────────────────────────────────────────
+function applyReportingFilters() {
+  const fromRaw = document.getElementById('filter-date-from').value;
+  const toRaw = document.getElementById('filter-date-to').value;
+  const provFilter = document.getElementById('filter-provider').value;
+  // Validate date format YYYY-MM-DD
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  const from = dateRe.test(fromRaw) ? new Date(fromRaw) : null;
+  const to = dateRe.test(toRaw) ? new Date(toRaw) : null;
+  let filtered = historyData;
+  if (from || to) {
+    filtered = filtered.filter(h => {
+      const d = new Date(h.date);
+      if (isNaN(d)) return true;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    });
+  }
+  if (provFilter) {
+    filtered = filtered.filter(h => {
+      const res = getResources(h);
+      return res.some(r => rProviderKey(r) === provFilter);
+    });
+  }
+  renderReportingWithData(filtered);
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let historyData = [], selectedIdx = 0;
+
+function selectRun(idx) {
+  selectedIdx = idx;
+  document.querySelectorAll('.history-row').forEach((row, i) => row.classList.toggle('selected', i === idx));
+  renderBreakdown(historyData[idx]);
+  const entry = historyData[idx];
+  const resources = getResources(entry);
+  if (resources.length) {
+    buildProviderChart(resources);
+    buildSovereignChart(resources);
+    buildTopResourcesChart(resources);
+    const subtitle = document.getElementById('chart1-subtitle');
+    if (subtitle) subtitle.textContent = entry.date.split(',')[0];
+  }
+  closeDrilldown();
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+function renderBreakdown(entry) {
+  const el = document.getElementById('breakdown-section');
+  const tbody = document.getElementById('breakdown-tbody');
+  if (!entry) { el.classList.add('hidden'); return; }
+  const resources = getResources(entry);
+  el.classList.remove('hidden');
+  const labelEl = document.getElementById('breakdown-label');
+  if (labelEl) labelEl.textContent = entry.date;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  if (!resources.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 6; td.className = 'px-5 py-8 text-center text-xs text-gray-400';
+    td.textContent = 'No resource data available for this run.';
+    tr.appendChild(td); tbody.appendChild(tr);
+    document.getElementById('breakdown-total').textContent = '€' + fmt2(entry.monthly || 0);
+    return;
+  }
+  resources.forEach(r => {
+    const provKey = rProviderKey(r);
+    const provMeta = PROVIDER_META[provKey] || PROVIDER_META.other;
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-gray-50 hover:bg-gray-50/60';
+    const tdName = document.createElement('td');
+    tdName.className = 'px-5 py-3 text-xs font-medium text-eu-blue';
+    tdName.textContent = rName(r);
+    tr.appendChild(tdName);
+    const tdType = document.createElement('td');
+    tdType.className = 'px-5 py-3 text-xs text-gray-500 hidden sm:table-cell';
+    tdType.textContent = rType(r);
+    tr.appendChild(tdType);
+    const tdProv = document.createElement('td');
+    tdProv.className = 'px-5 py-3 text-xs hidden md:table-cell';
+    const provSpan = document.createElement('span');
+    provSpan.className = 'inline-flex items-center gap-1';
+    const dot = document.createElement('span');
+    dot.className = 'w-2 h-2 rounded-sm inline-block';
+    dot.style.background = provMeta.color;
+    const provLabel = document.createElement('span');
+    provLabel.className = 'text-gray-600';
+    provLabel.textContent = provMeta.label;
+    provSpan.appendChild(dot); provSpan.appendChild(provLabel);
+    tdProv.appendChild(provSpan); tr.appendChild(tdProv);
+    const tdHourly = document.createElement('td');
+    tdHourly.className = 'px-5 py-3 text-right text-xs text-gray-500 tabular-nums hidden md:table-cell';
+    tdHourly.textContent = '€' + fmt4(rHourly(r));
+    tr.appendChild(tdHourly);
+    const tdMonthly = document.createElement('td');
+    tdMonthly.className = 'px-5 py-3 text-right text-xs font-bold text-eu-blue tabular-nums';
+    tdMonthly.textContent = '€' + fmt2(rMonthly(r));
+    tr.appendChild(tdMonthly);
+    const tdEU = document.createElement('td');
+    tdEU.className = 'px-5 py-3 text-center hidden sm:table-cell';
+    const icon = document.createElement('i');
+    icon.className = rIsEU(r) ? 'fa-solid fa-shield-halved text-green-500 text-sm' : 'fa-solid fa-triangle-exclamation text-amber-400 text-sm';
+    icon.title = rIsEU(r) ? 'EU Sovereign' : 'Non-EU';
+    tdEU.appendChild(icon); tr.appendChild(tdEU);
+    tbody.appendChild(tr);
+  });
+  const totalMonthly = resources.reduce((s, r) => s + rMonthly(r), 0);
+  const totalHourly = resources.reduce((s, r) => s + rHourly(r), 0);
+  document.getElementById('breakdown-total').textContent = '€' + fmt2(totalMonthly);
+  document.getElementById('breakdown-total-hourly').textContent = '€' + fmt4(totalHourly);
+}
+
+function renderHistory(data) {
+  const tbody = document.getElementById('history-tbody');
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  data.forEach((h, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'history-row border-b border-gray-50' + (i === selectedIdx ? ' selected' : '');
+    tr.addEventListener('click', () => selectRun(i));
+    const cells = [
+      { cls: 'px-5 py-3.5 text-gray-400 text-xs', text: String(data.length - i) },
+      { cls: 'px-5 py-3.5 text-xs text-gray-700', text: h.date },
+      { cls: 'px-5 py-3.5 text-right text-xs text-gray-600', text: String(h.resources) },
+      { cls: 'px-5 py-3.5 text-right text-xs font-bold text-eu-blue tabular-nums', text: '€' + fmt2(h.monthly) },
+    ];
+    cells.forEach(c => {
+      const td = document.createElement('td');
+      td.className = c.cls; td.textContent = c.text; tr.appendChild(td);
+    });
+    const tdScore = document.createElement('td');
+    tdScore.className = 'px-5 py-3.5 text-center';
+    const badge = document.createElement('span');
+    badge.className = 'inline-block px-2 py-0.5 text-[10px] font-bold ' + (h.score >= 90 ? 'bg-green-50 text-green-700' : h.score >= 60 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-600');
+    badge.textContent = h.score + '%';
+    tdScore.appendChild(badge); tr.appendChild(tdScore);
+    const tdActions = document.createElement('td');
+    tdActions.className = 'px-5 py-3.5 text-center no-print';
+    const btnHTML = document.createElement('button');
+    btnHTML.className = 'text-gray-300 hover:text-eu-blue transition-colors text-xs mr-2';
+    btnHTML.title = 'Download HTML';
+    const iconHTML = document.createElement('i');
+    iconHTML.className = 'fa-solid fa-file-code';
+    btnHTML.appendChild(iconHTML);
+    btnHTML.addEventListener('click', e => { e.stopPropagation(); downloadEntryHTML(i); });
+    const btnCSV = document.createElement('button');
+    btnCSV.className = 'text-gray-300 hover:text-eu-blue transition-colors text-xs mr-2';
+    btnCSV.title = 'Download CSV';
+    const iconCSV = document.createElement('i');
+    iconCSV.className = 'fa-solid fa-table';
+    btnCSV.appendChild(iconCSV);
+    btnCSV.addEventListener('click', e => { e.stopPropagation(); downloadEntryCSV(i); });
+    const btnJSON = document.createElement('button');
+    btnJSON.className = 'text-gray-300 hover:text-eu-blue transition-colors text-xs';
+    btnJSON.title = 'Download JSON';
+    const iconJSON = document.createElement('i');
+    iconJSON.className = 'fa-solid fa-brackets-curly';
+    btnJSON.appendChild(iconJSON);
+    btnJSON.addEventListener('click', e => { e.stopPropagation(); downloadEntryJSON(i); });
+    tdActions.appendChild(btnHTML); tdActions.appendChild(btnCSV); tdActions.appendChild(btnJSON);
+    tr.appendChild(tdActions);
+    tbody.appendChild(tr);
+  });
+}
+
+function renderReportingWithData(data) {
+  if (!data.length) {
+    document.getElementById('no-data').classList.remove('hidden');
+    ['kpi-row','charts-row1','charts-row2','history-section'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    return;
+  }
+  document.getElementById('no-data').classList.add('hidden');
+  ['kpi-row','charts-row1','charts-row2','history-section'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+  const latest = data[0];
+  const avgScore = Math.round(data.reduce((s, h) => s + h.score, 0) / data.length);
+  const totalRes = data.reduce((s, h) => s + h.resources, 0);
+  document.getElementById('kpi-analyses').textContent = data.length;
+  document.getElementById('kpi-latest').textContent = '€' + fmt2(latest.monthly);
+  document.getElementById('kpi-latest-date').textContent = latest.date;
+  document.getElementById('kpi-score').textContent = avgScore + '%';
+  document.getElementById('kpi-resources').textContent = totalRes;
+  const latestRes = getResources(latest);
+  buildProviderChart(latestRes);
+  buildStackedBarChart(data);
+  buildSovereignChart(latestRes);
+  buildTopResourcesChart(latestRes);
+  selectedIdx = 0;
+  renderHistory(data);
+  renderBreakdown(data[0]);
+}
+
+function renderReporting(history) { renderReportingWithData(history); }
+
+// ── Downloads ──────────────────────────────────────────────────────────────
+function downloadFile(name, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function generateCSV(entry) {
+  const resources = getResources(entry);
+  const header = ['Resource','Type','Provider','EUR_Monthly','EUR_Hourly','EU_Sovereign'];
+  const rows = resources.map(r => [
+    rName(r), rType(r),
+    PROVIDER_META[rProviderKey(r)]?.label || rProviderKey(r),
+    rMonthly(r).toFixed(2), rHourly(r).toFixed(4),
+    rIsEU(r) ? 'true' : 'false'
+  ]);
+  return [header, ...rows].map(row =>
+    row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')
+  ).join('\r\n');
+}
+
+function generateHTMLReport(entry) {
+  const resources = getResources(entry);
+  const total = resources.reduce((s, r) => s + rMonthly(r), 0);
+  // escaping helper for the HTML report template (output is downloaded, not injected into DOM)
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const rows = resources.map(r =>
+    `<tr><td>${esc(rName(r))}</td><td>${esc(rType(r))}</td><td>${esc(PROVIDER_META[rProviderKey(r)]?.label||rProviderKey(r))}</td><td style="text-align:right">€${esc(fmt2(rMonthly(r)))}</td><td style="text-align:center">${rIsEU(r)?'✓ EU':'—'}</td></tr>`
+  ).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>EuroOpenCost Report</title><style>body{font-family:Inter,sans-serif;max-width:900px;margin:40px auto;padding:20px;color:#111827}h1{color:#0a1945;font-weight:300;font-size:32px}table{width:100%;border-collapse:collapse;margin:20px 0}td,th{padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:left}th{background:#f9fafb;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;font-weight:600}.score{font-size:56px;font-weight:800;color:#10b981;line-height:1}.meta{color:#6b7280;font-size:12px}.total-row{font-weight:700;color:#0a1945;border-top:2px solid #0a1945}</style></head><body>
+<p class="meta">EuroOpenCost · Sovereign Cloud Intelligence</p>
+<h1>Cost Report</h1>
+<p class="meta">${esc(entry.date)} · ${esc(String(entry.resources))} resources</p>
+<div class="score">${esc(String(entry.score))}%</div>
+<p class="meta" style="color:#10b981;font-weight:700;text-transform:uppercase;letter-spacing:2px;font-size:11px">Sovereign Score</p>
+<h2>Resource Inventory</h2>
+<table><thead><tr><th>Resource</th><th>Service</th><th>Provider</th><th style="text-align:right">€/month</th><th style="text-align:center">EU</th></tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr class="total-row"><td colspan="3">TOTAL</td><td style="text-align:right">€${esc(fmt2(total))}</td><td></td></tr></tfoot>
+</table><p class="meta" style="margin-top:40px">Generated by EuroOpenCost v0.1.0 · euroopencost.eu</p></body></html>`;
+}
+
+function downloadEntryHTML(i) {
+  downloadFile('eucost-report-' + i + '.html', generateHTMLReport(historyData[i]), 'text/html');
+  showToast('HTML report downloaded.');
+}
+function downloadEntryCSV(i) {
+  downloadFile('eucost-report-' + i + '.csv', generateCSV(historyData[i]), 'text/csv');
+  showToast('CSV downloaded.');
+}
+function downloadEntryJSON(i) {
+  downloadFile('eucost-report-' + i + '.json', JSON.stringify(historyData[i].data, null, 2), 'application/json');
+  showToast('JSON downloaded.');
+}
+function downloadSelectedHTML() { downloadEntryHTML(selectedIdx); }
+function downloadSelectedCSV()  { downloadEntryCSV(selectedIdx); }
+function downloadSelectedJSON() { downloadEntryJSON(selectedIdx); }
+
+function exportCSV() { downloadSelectedCSV(); }
+function exportAllJSON() {
+  downloadFile('eucost-history.json', JSON.stringify(historyData, null, 2), 'application/json');
+  showToast('Full history JSON downloaded.');
+}
+
+function clearHistory() {
+  if (!confirm('Clear all analysis history? This cannot be undone.')) return;
+  localStorage.removeItem('eucost_history');
+  historyData = [];
+  renderReporting([]);
+  ['kpi-row','charts-row1','charts-row2','history-section','breakdown-section','provider-drilldown'].forEach(id => {
+    document.getElementById(id)?.classList.add('hidden');
+  });
+  showToast('History cleared.');
+}
+
+function exportPDF() {
+  document.getElementById('print-date').textContent = new Date().toLocaleDateString('de-DE', {year:'numeric',month:'long',day:'numeric'});
+  setTimeout(() => window.print(), 200);
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    authUser = session.user;
+    const { data } = await sb.from('profiles').select('is_pro').eq('id', authUser.id).single();
+    authProfile = data;
+  }
+  const pro = isPro();
+  document.getElementById('reporting-gate').classList.toggle('hidden', pro);
+  document.getElementById('reporting-main').classList.toggle('hidden', !pro);
+  if (pro) {
+    document.getElementById('header-pro-badge').classList.remove('hidden');
+    const lk = document.getElementById('nav-reporting-lock');
+    if (lk) lk.style.display = 'none';
+    try {
+      const raw = JSON.parse(localStorage.getItem('eucost_history') || '[]');
+      historyData = validateHistorySchema(raw);
+    } catch {
+      historyData = [];
+      showToast('History data could not be parsed.', true);
+    }
+    renderReporting(historyData);
+  }
+});
+</script>
+</body>
+</html>

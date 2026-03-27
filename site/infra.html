@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src https://pquqtyfezwagzeujweqa.supabase.co; img-src 'self' data: blob:;">
+<title>EuroOpenCost | Infra Diagram</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'eu-blue':'#0a1945','eu-border':'#e5e7eb' },
+        fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'], mono:['Fira Code','ui-monospace','monospace'] },
+      }
+    }
+  }
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+  html, body { height:100%; overflow:hidden; }
+  .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
+  .nav-link:hover { color:#374151; border-color:#d1d5db; }
+  .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+
+  /* Canvas */
+  #canvas-root {
+    position:relative; overflow:hidden;
+    background-color:#f8f9fb;
+    background-image:
+      radial-gradient(circle, #c8ccd6 1px, transparent 1px);
+    background-size:24px 24px;
+    cursor:default; flex:1;
+  }
+  #canvas-root.mode-connect { cursor:crosshair; }
+  #canvas-root.mode-pan { cursor:grab; }
+  #canvas-root.mode-pan.panning { cursor:grabbing; }
+
+  /* Nodes */
+  .infra-node {
+    position:absolute; background:white;
+    border-radius:6px; padding:10px 14px 8px;
+    cursor:move; user-select:none;
+    box-shadow:0 2px 10px rgba(0,0,0,0.09);
+    min-width:110px; text-align:center;
+    border:2px solid transparent;
+    transition:box-shadow 0.15s, border-color 0.15s;
+    touch-action:none;
+  }
+  .infra-node:hover { box-shadow:0 4px 18px rgba(0,0,0,0.14); }
+  .infra-node.selected {
+    box-shadow:0 0 0 3px #007acc88, 0 4px 18px rgba(0,0,0,0.14);
+    border-color:#007acc;
+  }
+  .infra-node.connect-source { box-shadow:0 0 0 3px #10b98188; border-color:#10b981; }
+  .node-icon { font-size:22px; line-height:1; margin-bottom:5px; }
+  .node-label { font-size:11px; font-weight:600; color:#111827; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .node-sublabel { font-size:9px; color:#9ca3af; margin-top:1px; }
+  .node-cost { font-size:9px; font-weight:700; color:#0a1945; margin-top:3px; font-family:'Fira Code',monospace; }
+  .node-eu-badge { display:inline-block; font-size:8px; font-weight:700; padding:1px 4px; margin-top:3px; border-radius:2px; }
+  .node-eu-badge.eu { background:#d1fae5; color:#059669; }
+  .node-eu-badge.non-eu { background:#fee2e2; color:#dc2626; }
+
+  /* Palette */
+  .palette-item {
+    display:flex; align-items:center; gap:8px;
+    padding:7px 10px; cursor:grab;
+    border-radius:4px; border:1px solid transparent;
+    transition:all 0.1s; user-select:none;
+  }
+  .palette-item:hover { background:#f3f4f6; border-color:#e5e7eb; }
+  .palette-item:active { cursor:grabbing; opacity:0.7; }
+  .palette-icon { width:28px; height:28px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+
+  /* Toolbar buttons */
+  .tool-btn { display:flex; align-items:center; gap:5px; padding:5px 10px; font-size:11px; font-weight:500; border:1px solid #e5e7eb; background:white; cursor:pointer; border-radius:3px; transition:all 0.1s; white-space:nowrap; }
+  .tool-btn:hover { background:#f3f4f6; }
+  .tool-btn.active { background:#0a1945; color:white; border-color:#0a1945; }
+  .tool-btn.danger { border-color:#fca5a5; }
+  .tool-btn.danger:hover { background:#fee2e2; color:#dc2626; }
+
+  /* D2 panel */
+  #d2-panel { transition:height 0.25s ease; }
+  #d2-textarea { font-family:'Fira Code',monospace; font-size:11px; resize:none; outline:none; }
+
+  /* Connections (SVG) */
+  #svg-layer { position:absolute; inset:0; pointer-events:none; overflow:visible; }
+  .edge-path { fill:none; stroke:#94a3b8; stroke-width:1.8; marker-end:url(#arrow-default); }
+  .edge-path.eu-edge { stroke:#10b981; marker-end:url(#arrow-eu); }
+  .edge-path.non-eu-edge { stroke:#f59e0b; marker-end:url(#arrow-non-eu); }
+  .edge-label { font-size:9px; fill:#6b7280; font-family:Inter,sans-serif; paint-order:stroke; stroke:white; stroke-width:3px; font-weight:500; }
+
+  /* Ghost node during drag from palette */
+  #ghost-node { position:fixed; pointer-events:none; z-index:9999; opacity:0.8; display:none; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:2px; }
+
+  @keyframes pulse-ring { 0%,100%{opacity:1}50%{opacity:0.4} }
+  .pulse { animation:pulse-ring 1.5s infinite; }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="h-full overflow-hidden flex flex-col text-gray-800 font-sans antialiased bg-gray-50">
+
+<!-- Header -->
+<header class="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b border-eu-border z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-14">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="audit.html" class="nav-link">Audit Engine <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="policies.html" class="nav-link">Sovereign Policies <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="treasury.html" class="nav-link">Treasury <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="infra.html" class="nav-link nav-link-infra active"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <a href="index.html#settings" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" style="text-decoration:none;"><i class="fa-solid fa-gear text-sm"></i></a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1"><i class="fa-solid fa-bars text-lg"></i></button>
+      </div>
+    </div>
+  </div>
+  <!-- Mobile nav — unchanged -->
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="audit.html" class="nav-link-mobile">Audit Engine <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="policies.html" class="nav-link-mobile">Sovereign Policies <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="treasury.html" class="nav-link-mobile">Treasury <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="infra.html" class="nav-link-mobile" style="color:#7c3aed"><i class="fa-solid fa-diagram-project mr-1.5"></i>Infra Diagram</a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Main layout -->
+<div class="flex-1 flex overflow-hidden min-h-0">
+
+  <!-- Left: Node Palette -->
+  <div class="hidden md:flex w-52 flex-shrink-0 bg-white border-r border-eu-border flex-col min-h-0">
+    <div class="flex-shrink-0 px-3 py-2 border-b border-eu-border flex items-center justify-between">
+      <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Node Palette</span>
+    </div>
+    <div class="flex-1 overflow-y-auto py-2 px-2 min-h-0" id="palette">
+      <!-- Populated by JS -->
+    </div>
+    <!-- Templates -->
+    <div class="flex-shrink-0 border-t border-eu-border px-3 py-2">
+      <p class="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Templates</p>
+      <button onclick="loadTemplate('web3tier')" class="w-full text-left text-[10px] text-eu-blue hover:text-blue-800 py-1 border-b border-gray-50 flex items-center gap-1.5">
+        <i class="fa-solid fa-layer-group text-[9px]"></i> 3-Tier Web (Hetzner)
+      </button>
+      <button onclick="loadTemplate('k8s')" class="w-full text-left text-[10px] text-eu-blue hover:text-blue-800 py-1 border-b border-gray-50 flex items-center gap-1.5">
+        <i class="fa-solid fa-dharmachakra text-[9px]"></i> Kubernetes Cluster
+      </button>
+      <button onclick="loadTemplate('multicloud')" class="w-full text-left text-[10px] text-eu-blue hover:text-blue-800 py-1 flex items-center gap-1.5">
+        <i class="fa-solid fa-cloud text-[9px]"></i> Multi-Cloud Hybrid
+      </button>
+    </div>
+  </div>
+
+  <!-- Center: Canvas + Toolbar -->
+  <div class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+
+    <!-- Toolbar -->
+    <div class="flex-shrink-0 bg-white border-b border-eu-border px-2 py-1.5 flex items-center gap-1.5 overflow-x-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+      <!-- Mobile palette toggle -->
+      <button onclick="toggleMobilePalette()" class="tool-btn md:hidden" title="Add Nodes">
+        <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden xs:inline">Add</span>
+      </button>
+      <div class="w-px h-4 bg-gray-200 mx-0.5 md:hidden"></div>
+      <!-- Mode buttons -->
+      <button id="btn-select" onclick="setMode('select')" class="tool-btn active" title="Select (S)">
+        <i class="fa-solid fa-arrow-pointer text-[10px]"></i><span class="hidden md:inline ml-1">Select</span>
+      </button>
+      <button id="btn-connect" onclick="setMode('connect')" class="tool-btn" title="Connect (C)">
+        <i class="fa-solid fa-link text-[10px]"></i><span class="hidden md:inline ml-1">Connect</span>
+      </button>
+      <button id="btn-pan" onclick="setMode('pan')" class="tool-btn" title="Pan (Space)">
+        <i class="fa-solid fa-hand text-[10px]"></i><span class="hidden md:inline ml-1">Pan</span>
+      </button>
+      <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+      <!-- Actions -->
+      <button onclick="deleteSelected()" class="tool-btn danger" title="Delete (Del)">
+        <i class="fa-solid fa-trash-can text-[10px]"></i><span class="hidden md:inline ml-1">Delete</span>
+      </button>
+      <button onclick="autoLayout()" class="tool-btn" title="Auto-layout">
+        <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i><span class="hidden md:inline ml-1">Layout</span>
+      </button>
+      <button onclick="clearAll()" class="tool-btn" title="Clear all">
+        <i class="fa-solid fa-eraser text-[10px]"></i><span class="hidden md:inline ml-1">Clear</span>
+      </button>
+      <div class="w-px h-4 bg-gray-200 mx-0.5"></div>
+      <button onclick="zoomFit()" class="tool-btn" title="Zoom to fit">
+        <i class="fa-solid fa-expand text-[10px]"></i><span class="hidden md:inline ml-1">Fit</span>
+      </button>
+      <button onclick="exportPNG()" class="tool-btn" title="Export PNG">
+        <i class="fa-solid fa-image text-[10px]"></i><span class="hidden md:inline ml-1">PNG</span>
+      </button>
+      <button onclick="toggleD2Panel()" class="tool-btn" title="D2 Text" id="btn-d2">
+        <i class="fa-solid fa-code text-[10px]"></i><span class="hidden md:inline ml-1">D2</span>
+      </button>
+      <div class="flex-1 min-w-2"></div>
+      <!-- Cost summary -->
+      <div class="flex items-center gap-2 text-[10px] text-gray-500 flex-shrink-0">
+        <span class="whitespace-nowrap"><i class="fa-solid fa-chart-line text-[9px] mr-0.5"></i> <span id="total-monthly" class="font-bold text-eu-blue">€0.00</span>/mo</span>
+        <span id="eu-ratio" class="font-semibold text-green-600 whitespace-nowrap">100% EU</span>
+      </div>
+    </div>
+
+    <!-- Mobile palette slide-up -->
+    <div id="mobile-palette" class="md:hidden fixed inset-x-0 bottom-0 z-50 bg-white border-t border-eu-border shadow-xl transition-transform duration-300 translate-y-full" style="max-height:55vh;display:flex;flex-direction:column;">
+      <div class="flex items-center justify-between px-4 py-2 border-b border-eu-border flex-shrink-0">
+        <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Add Node</span>
+        <button onclick="toggleMobilePalette()" class="text-gray-400 hover:text-gray-700 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="overflow-y-auto flex-1 py-2 px-3" id="mobile-palette-content"></div>
+      <div class="flex-shrink-0 border-t border-eu-border px-3 py-2 flex gap-2 flex-wrap">
+        <span class="text-[9px] font-semibold text-gray-400 uppercase tracking-widest self-center mr-1">Templates:</span>
+        <button onclick="loadTemplate('web3tier');toggleMobilePalette()" class="text-[10px] text-eu-blue border border-eu-blue/30 px-2 py-1 rounded">3-Tier Web</button>
+        <button onclick="loadTemplate('k8s');toggleMobilePalette()" class="text-[10px] text-eu-blue border border-eu-blue/30 px-2 py-1 rounded">Kubernetes</button>
+        <button onclick="loadTemplate('multicloud');toggleMobilePalette()" class="text-[10px] text-eu-blue border border-eu-blue/30 px-2 py-1 rounded">Multi-Cloud</button>
+      </div>
+    </div>
+    <div id="mobile-palette-overlay" class="md:hidden fixed inset-0 bg-black/40 z-40 hidden" onclick="toggleMobilePalette()"></div>
+
+    <!-- Canvas area -->
+    <div id="canvas-root" class="flex-1 overflow-hidden relative min-h-0">
+      <div id="canvas-viewport" style="position:absolute;inset:0;transform-origin:0 0">
+        <!-- SVG layer for connections -->
+        <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none">
+          <defs>
+            <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+            </marker>
+            <marker id="arrow-eu" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#10b981"/>
+            </marker>
+            <marker id="arrow-non-eu" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+            </marker>
+          </defs>
+          <g id="edges-group"></g>
+        </svg>
+        <!-- Nodes layer -->
+        <div id="nodes-layer" style="position:absolute;inset:0"></div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="canvas-empty" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="text-center">
+          <i class="fa-solid fa-diagram-project text-5xl text-gray-200 block mb-4"></i>
+          <p class="text-sm font-medium text-gray-300 mb-1">Drag nodes from the palette</p>
+          <p class="text-xs text-gray-300">or load a template to get started</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- D2 panel (collapsible bottom) -->
+    <div id="d2-panel" class="hidden flex-shrink-0 border-t border-eu-border bg-[#1e1e1e]" style="height:160px">
+      <div class="flex items-center px-3 py-1.5 border-b border-[#333] gap-2">
+        <span class="text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-widest">D2 / Text Representation</span>
+        <span class="text-[9px] text-gray-600 font-mono ml-1">— live sync</span>
+        <button onclick="copyD2()" class="ml-auto text-gray-500 hover:text-gray-300 text-[10px] font-mono px-2 py-0.5 bg-[#2d2d2d] hover:bg-[#3c3c3c] transition-colors">
+          <i class="fa-solid fa-copy mr-1"></i>Copy
+        </button>
+        <button onclick="importFromD2()" class="text-gray-500 hover:text-gray-300 text-[10px] font-mono px-2 py-0.5 bg-[#2d2d2d] hover:bg-[#3c3c3c] transition-colors">
+          <i class="fa-solid fa-file-import mr-1"></i>Import
+        </button>
+      </div>
+      <textarea id="d2-textarea" class="w-full bg-[#1e1e1e] text-[#d4d4d4] px-4 py-2" style="height:calc(100% - 32px);border:none;resize:none;font-family:'Fira Code',monospace;font-size:11px;line-height:1.6;outline:none;" placeholder="# D2 diagram code will appear here as you build..."></textarea>
+    </div>
+  </div>
+
+  <!-- Right: Properties Panel -->
+  <div class="hidden lg:flex w-56 flex-shrink-0 bg-white border-l border-eu-border flex-col min-h-0">
+    <div class="flex-shrink-0 px-3 py-2 border-b border-eu-border">
+      <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Properties</span>
+    </div>
+    <div id="props-panel" class="flex-1 overflow-y-auto p-3 min-h-0 text-xs">
+      <div id="props-empty" class="text-center mt-12">
+        <i class="fa-solid fa-arrow-pointer text-gray-200 text-2xl block mb-2"></i>
+        <p class="text-gray-400">Select a node to see its properties</p>
+      </div>
+      <div id="props-content" class="hidden space-y-3">
+        <div>
+          <label class="block text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Label</label>
+          <input id="prop-label" type="text" class="w-full border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:border-eu-blue" oninput="updateNodeLabel(this.value)"/>
+        </div>
+        <div>
+          <label class="block text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Type</label>
+          <div id="prop-type" class="text-xs text-gray-600 font-mono bg-gray-50 px-2 py-1.5"></div>
+        </div>
+        <div>
+          <label class="block text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Provider</label>
+          <div id="prop-provider" class="text-xs text-gray-600"></div>
+        </div>
+        <div>
+          <label class="block text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Monthly Cost</label>
+          <div id="prop-cost" class="text-sm font-bold text-eu-blue font-mono"></div>
+        </div>
+        <div id="prop-eu-row">
+          <div id="prop-eu" class="text-xs font-semibold"></div>
+        </div>
+        <hr class="border-gray-100"/>
+        <button onclick="deleteSelected()" class="w-full text-[10px] font-medium border border-red-200 text-red-500 py-1.5 hover:bg-red-50 transition-colors">
+          <i class="fa-solid fa-trash-can mr-1"></i> Delete Node
+        </button>
+      </div>
+    </div>
+    <!-- Edge properties -->
+    <div id="edge-props" class="hidden flex-shrink-0 border-t border-eu-border p-3 text-xs">
+      <p class="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Connection Label</p>
+      <input id="edge-label-input" type="text" class="w-full border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:border-eu-blue" placeholder="e.g. HTTP, TCP 5432" oninput="updateEdgeLabel(this.value)"/>
+    </div>
+  </div>
+</div>
+
+<!-- Ghost node (follows cursor during palette drag) -->
+<div id="ghost-node">
+  <div class="infra-node" id="ghost-inner" style="opacity:0.85;pointer-events:none;min-width:100px"></div>
+</div>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://pquqtyfezwagzeujweqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdXF0eWZlendhZ3pldWp3ZXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTk5ODIsImV4cCI6MjA5MDE3NTk4Mn0.SP8ZvG64595-IflvEhZTodWVzGJYoqszfj1zlRGR66M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast'), m = document.getElementById('toast-msg');
+  if (!t||!m) return; m.textContent = msg;
+  t.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none '+(isErr?'bg-red-600':'bg-eu-blue');
+  t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0';},3000);
+}
+
+// ── Node type registry ─────────────────────────────────────────────────────
+const NODE_TYPES = {
+  // Compute — EU
+  hcloud_server:   { label:'Hetzner Server',   icon:'fa-server',          color:'#DC2626', provider:'Hetzner',  eu:true,  category:'compute', cost:5.83,  tf:'hcloud_server' },
+  hcloud_lb:       { label:'Hetzner LB',        icon:'fa-scale-balanced',  color:'#DC2626', provider:'Hetzner',  eu:true,  category:'network', cost:5.39,  tf:'hcloud_load_balancer' },
+  hcloud_volume:   { label:'Hetzner Volume',    icon:'fa-hard-drive',      color:'#DC2626', provider:'Hetzner',  eu:true,  category:'storage', cost:4.76,  tf:'hcloud_volume' },
+  ovh_instance:    { label:'OVH Instance',      icon:'fa-server',          color:'#0891B2', provider:'OVH',      eu:true,  category:'compute', cost:7.00,  tf:'ovh_cloud_project_instance' },
+  scaleway_server: { label:'Scaleway Server',   icon:'fa-server',          color:'#7C3AED', provider:'Scaleway', eu:true,  category:'compute', cost:5.99,  tf:'scaleway_instance_server' },
+  ionos_server:    { label:'IONOS Server',      icon:'fa-server',          color:'#2563EB', provider:'IONOS',    eu:true,  category:'compute', cost:10.30, tf:'ionoscloud_server' },
+  stackit_server:  { label:'STACKIT Server',    icon:'fa-server',          color:'#059669', provider:'STACKIT',  eu:true,  category:'compute', cost:2.20,  tf:'stackit_server' },
+  otc_instance:    { label:'OTC Instance',      icon:'fa-server',          color:'#D97706', provider:'OTC',      eu:true,  category:'compute', cost:25.00, tf:'opentelekomcloud_compute_instance_v2' },
+  ionos_db:        { label:'IONOS PostgreSQL',  icon:'fa-database',        color:'#2563EB', provider:'IONOS',    eu:true,  category:'database',cost:15.00, tf:'ionoscloud_pg_cluster' },
+  otc_rds:         { label:'OTC RDS',           icon:'fa-database',        color:'#D97706', provider:'OTC',      eu:true,  category:'database',cost:72.00, tf:'opentelekomcloud_rds_instance_v3' },
+  // Compute — non-EU
+  aws_ec2:         { label:'AWS EC2',           icon:'fa-server',          color:'#F59E0B', provider:'AWS',      eu:false, category:'compute', cost:30.00, tf:'aws_instance' },
+  aws_s3:          { label:'AWS S3',            icon:'fa-bucket',          color:'#F59E0B', provider:'AWS',      eu:false, category:'storage', cost:2.30,  tf:'aws_s3_bucket' },
+  aws_rds:         { label:'AWS RDS',           icon:'fa-database',        color:'#F59E0B', provider:'AWS',      eu:false, category:'database',cost:58.40, tf:'aws_db_instance' },
+  gcp_compute:     { label:'GCP Compute',       icon:'fa-server',          color:'#4285F4', provider:'GCP',      eu:false, category:'compute', cost:27.45, tf:'google_compute_instance' },
+  azure_vm:        { label:'Azure VM',          icon:'fa-server',          color:'#0EA5E9', provider:'Azure',    eu:false, category:'compute', cost:32.12, tf:'azurerm_linux_virtual_machine' },
+  // Network — generic
+  load_balancer:   { label:'Load Balancer',     icon:'fa-scale-balanced',  color:'#6B7280', provider:'Generic',  eu:null,  category:'network', cost:0,     tf:'#' },
+  firewall:        { label:'Firewall',          icon:'fa-shield-halved',   color:'#374151', provider:'Generic',  eu:null,  category:'network', cost:0,     tf:'#' },
+  internet:        { label:'Internet',          icon:'fa-globe',           color:'#1D4ED8', provider:'Generic',  eu:null,  category:'network', cost:0,     tf:'#' },
+  users:           { label:'Users',             icon:'fa-users',           color:'#7C3AED', provider:'Generic',  eu:null,  category:'network', cost:0,     tf:'#' },
+  cdn:             { label:'CDN',               icon:'fa-network-wired',   color:'#0891B2', provider:'Generic',  eu:null,  category:'network', cost:0,     tf:'#' },
+  vpn:             { label:'VPN',               icon:'fa-lock',            color:'#059669', provider:'Generic',  eu:null,  category:'network', cost:0,     tf:'#' },
+};
+
+const CATEGORY_ORDER = ['compute','network','storage','database'];
+const CATEGORY_LABELS = { compute:'Compute', network:'Network', storage:'Storage', database:'Database' };
+
+// ── Diagram state ──────────────────────────────────────────────────────────
+const diagram = {
+  nodes: new Map(),   // id → {id, type, label, x, y, cost}
+  edges: [],          // [{id, from, to, label}]
+  nextNodeId: 1,
+  nextEdgeId: 1,
+  selected: null,     // node id or {edgeId}
+  selectedEdge: null,
+  mode: 'select',
+  connecting: null,   // node id of source in connect mode
+  viewport: { x: 0, y: 0, scale: 1 },
+};
+
+// ── Viewport transforms ────────────────────────────────────────────────────
+function getCanvasCoords(clientX, clientY) {
+  const root = document.getElementById('canvas-root');
+  const rect = root.getBoundingClientRect();
+  const { x, y, scale } = diagram.viewport;
+  return {
+    x: (clientX - rect.left - x) / scale,
+    y: (clientY - rect.top  - y) / scale,
+  };
+}
+
+function applyViewport() {
+  const vp = document.getElementById('canvas-viewport');
+  const { x, y, scale } = diagram.viewport;
+  vp.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
+}
+
+// ── Mode ───────────────────────────────────────────────────────────────────
+function setMode(m) {
+  diagram.mode = m;
+  diagram.connecting = null;
+  document.querySelectorAll('.infra-node').forEach(el => el.classList.remove('connect-source'));
+  ['select','connect','pan'].forEach(btn => {
+    document.getElementById('btn-' + btn)?.classList.toggle('active', btn === m);
+  });
+  const root = document.getElementById('canvas-root');
+  root.classList.toggle('mode-connect', m === 'connect');
+  root.classList.toggle('mode-pan', m === 'pan');
+}
+
+// ── Node creation ──────────────────────────────────────────────────────────
+function createNode(typeKey, x, y, labelOverride) {
+  const def = NODE_TYPES[typeKey]; if (!def) return null;
+  const id = 'n' + (diagram.nextNodeId++);
+  const label = labelOverride || def.label.split(' ').pop().toLowerCase() + '-' + id.slice(1);
+  const node = { id, type: typeKey, label, x, y, cost: def.cost };
+  diagram.nodes.set(id, node);
+  renderNode(node);
+  updateEmptyState();
+  refreshD2();
+  updateCostSummary();
+  return node;
+}
+
+function renderNode(node) {
+  const def = NODE_TYPES[node.type];
+  if (!def) return;
+  // Remove old element if exists
+  document.getElementById('node-' + node.id)?.remove();
+  const el = document.createElement('div');
+  el.className = 'infra-node';
+  el.id = 'node-' + node.id;
+  el.dataset.id = node.id;
+  el.style.left = node.x + 'px';
+  el.style.top  = node.y + 'px';
+  el.style.borderTopColor = def.color;
+  el.style.borderTopWidth = '3px';
+  // Icon
+  const iconDiv = document.createElement('div');
+  iconDiv.className = 'node-icon';
+  const icon = document.createElement('i');
+  icon.className = 'fa-solid ' + def.icon;
+  icon.style.color = def.color;
+  iconDiv.appendChild(icon);
+  el.appendChild(iconDiv);
+  // Label
+  const labelDiv = document.createElement('div');
+  labelDiv.className = 'node-label';
+  labelDiv.id = 'nlabel-' + node.id;
+  labelDiv.textContent = node.label;
+  el.appendChild(labelDiv);
+  // Sub (provider)
+  const subDiv = document.createElement('div');
+  subDiv.className = 'node-sublabel';
+  subDiv.textContent = def.provider;
+  el.appendChild(subDiv);
+  // Cost
+  if (node.cost > 0) {
+    const costDiv = document.createElement('div');
+    costDiv.className = 'node-cost';
+    costDiv.textContent = '€' + node.cost.toFixed(2) + '/mo';
+    el.appendChild(costDiv);
+  }
+  // EU badge
+  if (def.eu !== null) {
+    const badge = document.createElement('div');
+    badge.className = 'node-eu-badge ' + (def.eu ? 'eu' : 'non-eu');
+    badge.textContent = def.eu ? '✓ EU' : '⚠ non-EU';
+    el.appendChild(badge);
+  }
+  // Mouse events
+  el.addEventListener('mousedown', onNodeMouseDown);
+  document.getElementById('nodes-layer').appendChild(el);
+}
+
+// ── Node dragging ──────────────────────────────────────────────────────────
+let dragState = null;
+
+function onNodeMouseDown(e) {
+  if (e.button !== 0) return;
+  const id = e.currentTarget.dataset.id;
+  if (diagram.mode === 'connect') {
+    e.stopPropagation(); e.preventDefault();
+    handleConnectClick(id);
+    return;
+  }
+  if (diagram.mode === 'pan') return;
+  e.stopPropagation(); e.preventDefault();
+  selectNode(id);
+  const node = diagram.nodes.get(id);
+  if (!node) return;
+  const start = getCanvasCoords(e.clientX, e.clientY);
+  dragState = { id, startX: start.x - node.x, startY: start.y - node.y };
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragUp);
+}
+
+function onDragMove(e) {
+  if (!dragState) return;
+  const pos = getCanvasCoords(e.clientX, e.clientY);
+  const node = diagram.nodes.get(dragState.id);
+  if (!node) return;
+  node.x = pos.x - dragState.startX;
+  node.y = pos.y - dragState.startY;
+  const el = document.getElementById('node-' + node.id);
+  if (el) { el.style.left = node.x + 'px'; el.style.top = node.y + 'px'; }
+  redrawEdges();
+}
+
+function onDragUp() {
+  dragState = null;
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragUp);
+  refreshD2();
+}
+
+// ── Connect mode ───────────────────────────────────────────────────────────
+function handleConnectClick(id) {
+  if (!diagram.connecting) {
+    diagram.connecting = id;
+    document.getElementById('node-' + id)?.classList.add('connect-source');
+    showToast('Click target node to connect...');
+  } else {
+    if (diagram.connecting === id) {
+      diagram.connecting = null;
+      document.querySelectorAll('.infra-node').forEach(el => el.classList.remove('connect-source'));
+      return;
+    }
+    createEdge(diagram.connecting, id);
+    document.getElementById('node-' + diagram.connecting)?.classList.remove('connect-source');
+    diagram.connecting = null;
+    setMode('select');
+  }
+}
+
+// ── Edge creation ──────────────────────────────────────────────────────────
+function createEdge(from, to, label) {
+  // Avoid duplicate
+  if (diagram.edges.find(e => e.from === from && e.to === to)) {
+    showToast('Connection already exists.', true); return;
+  }
+  const id = 'e' + (diagram.nextEdgeId++);
+  diagram.edges.push({ id, from, to, label: label || '' });
+  redrawEdges();
+  refreshD2();
+}
+
+function redrawEdges() {
+  const g = document.getElementById('edges-group');
+  if (!g) return;
+  while (g.firstChild) g.removeChild(g.firstChild);
+  diagram.edges.forEach(edge => {
+    const fromNode = diagram.nodes.get(edge.from);
+    const toNode   = diagram.nodes.get(edge.to);
+    if (!fromNode || !toNode) return;
+    const fromEl = document.getElementById('node-' + edge.from);
+    const toEl   = document.getElementById('node-' + edge.to);
+    if (!fromEl || !toEl) return;
+    const fw = fromEl.offsetWidth, fh = fromEl.offsetHeight;
+    const tw = toEl.offsetWidth,   th = toEl.offsetHeight;
+    const x1 = fromNode.x + fw / 2, y1 = fromNode.y + fh / 2;
+    const x2 = toNode.x  + tw / 2, y2 = toNode.y  + th / 2;
+    // Bezier control points
+    const dx = x2 - x1, dy = y2 - y1;
+    const cx1 = x1 + dx * 0.4, cy1 = y1;
+    const cx2 = x2 - dx * 0.4, cy2 = y2;
+    const fromDef = NODE_TYPES[fromNode.type];
+    const toDef   = NODE_TYPES[toNode.type];
+    const isEU    = fromDef?.eu && toDef?.eu;
+    const isNonEU = fromDef?.eu === false || toDef?.eu === false;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`);
+    path.className.baseVal = 'edge-path' + (isEU ? ' eu-edge' : isNonEU ? ' non-eu-edge' : '');
+    path.dataset.edgeId = edge.id;
+    path.style.pointerEvents = 'stroke';
+    path.style.cursor = 'pointer';
+    path.addEventListener('click', () => selectEdge(edge.id));
+    g.appendChild(path);
+    // Label
+    if (edge.label) {
+      const mx = (x1 + cx1 + cx2 + x2) / 4, my = (y1 + cy1 + cy2 + y2) / 4;
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', mx); text.setAttribute('y', my - 5);
+      text.setAttribute('text-anchor', 'middle');
+      text.className.baseVal = 'edge-label';
+      text.textContent = edge.label;
+      g.appendChild(text);
+    }
+  });
+}
+
+// ── Selection ──────────────────────────────────────────────────────────────
+function selectNode(id) {
+  diagram.selectedEdge = null;
+  document.getElementById('edge-props')?.classList.add('hidden');
+  document.querySelectorAll('.infra-node').forEach(el => el.classList.remove('selected'));
+  diagram.selected = id;
+  if (!id) {
+    document.getElementById('props-empty')?.classList.remove('hidden');
+    document.getElementById('props-content')?.classList.add('hidden');
+    return;
+  }
+  document.getElementById('node-' + id)?.classList.add('selected');
+  const node = diagram.nodes.get(id);
+  const def  = NODE_TYPES[node?.type];
+  if (!node || !def) return;
+  document.getElementById('props-empty')?.classList.add('hidden');
+  document.getElementById('props-content')?.classList.remove('hidden');
+  document.getElementById('prop-label').value = node.label;
+  document.getElementById('prop-type').textContent  = node.type;
+  document.getElementById('prop-provider').textContent = def.provider;
+  document.getElementById('prop-cost').textContent  = node.cost > 0 ? '€' + node.cost.toFixed(2) + '/mo' : 'Free';
+  const euEl = document.getElementById('prop-eu');
+  if (def.eu === true)       { euEl.textContent = '✓ EU Sovereign'; euEl.className = 'text-xs font-semibold text-green-600'; }
+  else if (def.eu === false) { euEl.textContent = '⚠ Non-EU (US Cloud Act)'; euEl.className = 'text-xs font-semibold text-red-600'; }
+  else                       { euEl.textContent = 'Generic component'; euEl.className = 'text-xs text-gray-400'; }
+}
+
+function selectEdge(id) {
+  diagram.selected = null;
+  diagram.selectedEdge = id;
+  document.querySelectorAll('.infra-node').forEach(el => el.classList.remove('selected'));
+  document.getElementById('props-empty')?.classList.remove('hidden');
+  document.getElementById('props-content')?.classList.add('hidden');
+  const edge = diagram.edges.find(e => e.id === id);
+  if (edge) {
+    document.getElementById('edge-props')?.classList.remove('hidden');
+    document.getElementById('edge-label-input').value = edge.label || '';
+  }
+}
+
+function updateNodeLabel(val) {
+  if (!diagram.selected) return;
+  const node = diagram.nodes.get(diagram.selected);
+  if (!node) return;
+  node.label = val;
+  const el = document.getElementById('nlabel-' + node.id);
+  if (el) el.textContent = val;
+  refreshD2();
+}
+
+function updateEdgeLabel(val) {
+  if (!diagram.selectedEdge) return;
+  const edge = diagram.edges.find(e => e.id === diagram.selectedEdge);
+  if (!edge) return;
+  edge.label = val;
+  redrawEdges();
+  refreshD2();
+}
+
+function deleteSelected() {
+  if (diagram.selected) {
+    document.getElementById('node-' + diagram.selected)?.remove();
+    diagram.nodes.delete(diagram.selected);
+    // Remove connected edges
+    diagram.edges = diagram.edges.filter(e => e.from !== diagram.selected && e.to !== diagram.selected);
+    diagram.selected = null;
+    selectNode(null);
+    redrawEdges();
+    refreshD2();
+    updateCostSummary();
+    updateEmptyState();
+  } else if (diagram.selectedEdge) {
+    diagram.edges = diagram.edges.filter(e => e.id !== diagram.selectedEdge);
+    diagram.selectedEdge = null;
+    document.getElementById('edge-props')?.classList.add('hidden');
+    redrawEdges();
+    refreshD2();
+  }
+}
+
+// ── Canvas pan & zoom ──────────────────────────────────────────────────────
+let panState = null;
+
+function onCanvasMouseDown(e) {
+  if (e.button !== 0) return;
+  if (e.target.closest('.infra-node')) return;
+  if (e.target.closest('path, text')) return;
+  // Deselect
+  selectNode(null);
+  if (diagram.mode === 'pan' || (diagram.mode === 'select' && e.altKey)) {
+    panState = { startX: e.clientX - diagram.viewport.x, startY: e.clientY - diagram.viewport.y };
+    document.getElementById('canvas-root').classList.add('panning');
+    document.addEventListener('mousemove', onPanMove);
+    document.addEventListener('mouseup', onPanUp);
+  }
+  // Cancel connecting
+  if (diagram.mode === 'connect' && diagram.connecting) {
+    diagram.connecting = null;
+    document.querySelectorAll('.infra-node').forEach(el => el.classList.remove('connect-source'));
+  }
+}
+
+function onPanMove(e) {
+  if (!panState) return;
+  diagram.viewport.x = e.clientX - panState.startX;
+  diagram.viewport.y = e.clientY - panState.startY;
+  applyViewport();
+}
+
+function onPanUp() {
+  panState = null;
+  document.getElementById('canvas-root').classList.remove('panning');
+  document.removeEventListener('mousemove', onPanMove);
+  document.removeEventListener('mouseup', onPanUp);
+}
+
+function onCanvasWheel(e) {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  const root = document.getElementById('canvas-root');
+  const rect = root.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const newScale = Math.max(0.2, Math.min(3, diagram.viewport.scale * delta));
+  diagram.viewport.x = mx - (mx - diagram.viewport.x) * (newScale / diagram.viewport.scale);
+  diagram.viewport.y = my - (my - diagram.viewport.y) * (newScale / diagram.viewport.scale);
+  diagram.viewport.scale = newScale;
+  applyViewport();
+}
+
+function zoomFit() {
+  if (!diagram.nodes.size) { diagram.viewport = {x:0,y:0,scale:1}; applyViewport(); return; }
+  const root = document.getElementById('canvas-root');
+  const W = root.clientWidth, H = root.clientHeight;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  diagram.nodes.forEach(n => {
+    const el = document.getElementById('node-'+n.id);
+    const w = el?.offsetWidth||120, h = el?.offsetHeight||90;
+    minX=Math.min(minX,n.x); minY=Math.min(minY,n.y);
+    maxX=Math.max(maxX,n.x+w); maxY=Math.max(maxY,n.y+h);
+  });
+  const pad = 60;
+  const scaleX = (W-pad*2)/(maxX-minX||1);
+  const scaleY = (H-pad*2)/(maxY-minY||1);
+  const scale = Math.max(0.2, Math.min(1.5, Math.min(scaleX,scaleY)));
+  diagram.viewport.scale = scale;
+  diagram.viewport.x = (W - (maxX-minX)*scale)/2 - minX*scale;
+  diagram.viewport.y = (H - (maxY-minY)*scale)/2 - minY*scale;
+  applyViewport();
+}
+
+function autoLayout() {
+  if (!diagram.nodes.size) return;
+  const nodes = [...diagram.nodes.values()];
+  // Group by category then arrange in rows
+  const cats = {};
+  nodes.forEach(n => {
+    const cat = NODE_TYPES[n.type]?.category || 'other';
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(n);
+  });
+  let rowY = 80;
+  Object.values(cats).forEach(group => {
+    const spacing = 160;
+    const totalW = group.length * spacing;
+    let startX = (document.getElementById('canvas-root').clientWidth / diagram.viewport.scale - totalW) / 2;
+    startX = Math.max(60, startX);
+    group.forEach((n, i) => {
+      n.x = startX + i * spacing;
+      n.y = rowY;
+      const el = document.getElementById('node-'+n.id);
+      if (el) { el.style.left = n.x+'px'; el.style.top = n.y+'px'; }
+    });
+    rowY += 160;
+  });
+  redrawEdges();
+  setTimeout(zoomFit, 50);
+  showToast('Layout applied.');
+}
+
+function clearAll() {
+  if (diagram.nodes.size && !confirm('Clear the diagram?')) return;
+  diagram.nodes.forEach((_, id) => document.getElementById('node-'+id)?.remove());
+  diagram.nodes.clear();
+  diagram.edges = [];
+  diagram.selected = null;
+  diagram.selectedEdge = null;
+  diagram.connecting = null;
+  redrawEdges();
+  selectNode(null);
+  updateEmptyState();
+  updateCostSummary();
+  refreshD2();
+}
+
+// ── Cost summary ───────────────────────────────────────────────────────────
+function updateCostSummary() {
+  let total = 0, euCount = 0, nonEuCount = 0;
+  diagram.nodes.forEach(n => {
+    total += n.cost || 0;
+    const def = NODE_TYPES[n.type];
+    if (def?.eu === true) euCount++;
+    else if (def?.eu === false) nonEuCount++;
+  });
+  const allCount = euCount + nonEuCount;
+  const euPct = allCount > 0 ? Math.round(euCount / allCount * 100) : 100;
+  const totalEl = document.getElementById('total-monthly');
+  const ratioEl = document.getElementById('eu-ratio');
+  if (totalEl) totalEl.textContent = '€' + total.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (ratioEl) {
+    ratioEl.textContent = euPct + '% EU';
+    ratioEl.className = euPct >= 80 ? 'font-semibold text-green-600' : euPct >= 50 ? 'font-semibold text-yellow-600' : 'font-semibold text-red-600';
+  }
+}
+
+function updateEmptyState() {
+  const el = document.getElementById('canvas-empty');
+  if (el) el.style.display = diagram.nodes.size ? 'none' : 'flex';
+}
+
+// ── D2 sync ────────────────────────────────────────────────────────────────
+function refreshD2() {
+  const ta = document.getElementById('d2-textarea');
+  if (!ta) return;
+  const lines = ['# EuroOpenCost Infrastructure Diagram', '# Generated ' + new Date().toLocaleDateString('de-DE'), ''];
+  diagram.nodes.forEach(n => {
+    const def = NODE_TYPES[n.type];
+    lines.push(n.label + ': ' + (def?.label || n.type) + ' {');
+    lines.push('  shape: rectangle');
+    if (n.cost > 0) lines.push('  cost: €' + n.cost.toFixed(2) + '/mo');
+    lines.push('  eu: ' + (def?.eu === true ? 'true' : def?.eu === false ? 'false' : 'null'));
+    lines.push('}');
+  });
+  if (diagram.edges.length) {
+    lines.push('');
+    diagram.edges.forEach(e => {
+      const fromNode = diagram.nodes.get(e.from);
+      const toNode = diagram.nodes.get(e.to);
+      if (fromNode && toNode) {
+        lines.push(fromNode.label + ' -> ' + toNode.label + (e.label ? ': ' + e.label : ''));
+      }
+    });
+  }
+  ta.value = lines.join('\n');
+}
+
+function toggleD2Panel() {
+  const panel = document.getElementById('d2-panel');
+  const btn = document.getElementById('btn-d2');
+  const isHidden = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !isHidden);
+  btn?.classList.toggle('active', isHidden);
+  if (isHidden) refreshD2();
+}
+
+function copyD2() {
+  const text = document.getElementById('d2-textarea')?.value || '';
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => showToast('D2 copied!'));
+  else showToast('Copy failed', true);
+}
+
+function importFromD2() {
+  const text = document.getElementById('d2-textarea')?.value || '';
+  // Simple D2 parser: "label -> label2: edge-label" and "label: NodeType"
+  const nodeRe = /^(\w[\w-]*)\s*:\s*([^{]+?)(?:\s*\{[\s\S]*?\})?$/gm;
+  const edgeRe = /^([\w-]+)\s*->\s*([\w-]+)(?:\s*:\s*(.+))?$/gm;
+  clearAll();
+  const nodeMap = {};
+  let m;
+  let xi = 120, yi = 120;
+  while ((m = nodeRe.exec(text)) !== null) {
+    const lbl = m[1].trim();
+    const typeName = m[2].trim().toLowerCase().replace(/\s+/g, '_');
+    // Find best matching type
+    const matchKey = Object.keys(NODE_TYPES).find(k => NODE_TYPES[k].label.toLowerCase().replace(/\s+/g,'_').includes(typeName) || typeName.includes(k.split('_')[0])) || 'hcloud_server';
+    const node = createNode(matchKey, xi, yi, lbl);
+    if (node) { nodeMap[lbl] = node.id; xi += 160; if (xi > 700) { xi = 120; yi += 150; } }
+  }
+  while ((m = edgeRe.exec(text)) !== null) {
+    const fromId = nodeMap[m[1]], toId = nodeMap[m[2]];
+    if (fromId && toId) createEdge(fromId, toId, m[3]?.trim() || '');
+  }
+  setTimeout(zoomFit, 100);
+  showToast('Diagram imported!');
+}
+
+// ── Templates ──────────────────────────────────────────────────────────────
+function loadTemplate(name) {
+  clearAll();
+  const TEMPLATES = {
+    web3tier: () => {
+      const inet  = createNode('internet',      200, 30,  'internet');
+      const lb    = createNode('hcloud_lb',     200, 160, 'web-lb');
+      const web1  = createNode('hcloud_server', 80,  300, 'web-01');
+      const web2  = createNode('hcloud_server', 320, 300, 'web-02');
+      const db    = createNode('ionos_db',      200, 450, 'db-main');
+      const vol   = createNode('hcloud_volume', 380, 450, 'data-vol');
+      if (inet && lb)   createEdge(inet.id,  lb.id,   'HTTPS');
+      if (lb && web1)   createEdge(lb.id,    web1.id, 'HTTP');
+      if (lb && web2)   createEdge(lb.id,    web2.id, 'HTTP');
+      if (web1 && db)   createEdge(web1.id,  db.id,   'TCP 5432');
+      if (web2 && db)   createEdge(web2.id,  db.id,   'TCP 5432');
+      if (db && vol)    createEdge(db.id,    vol.id,  'mount');
+    },
+    k8s: () => {
+      const lb     = createNode('hcloud_lb',     200,  40,  'ingress-lb');
+      const cp1    = createNode('hcloud_server', 80,  180, 'control-plane-1');
+      const cp2    = createNode('hcloud_server', 320, 180, 'control-plane-2');
+      const w1     = createNode('hcloud_server', 0,   340, 'worker-1');
+      const w2     = createNode('hcloud_server', 180, 340, 'worker-2');
+      const w3     = createNode('hcloud_server', 360, 340, 'worker-3');
+      const pvc    = createNode('hcloud_volume', 180, 480, 'persistent-vol');
+      if (lb && cp1)   createEdge(lb.id,   cp1.id, 'kube-api');
+      if (lb && cp2)   createEdge(lb.id,   cp2.id, 'kube-api');
+      if (cp1 && w1)   createEdge(cp1.id,  w1.id,  'kubelet');
+      if (cp1 && w2)   createEdge(cp1.id,  w2.id,  'kubelet');
+      if (cp2 && w3)   createEdge(cp2.id,  w3.id,  'kubelet');
+      if (w2 && pvc)   createEdge(w2.id,   pvc.id, 'CSI');
+    },
+    multicloud: () => {
+      const users  = createNode('users',          200, 20,  'end-users');
+      const cdn    = createNode('cdn',            200, 150, 'cdn-edge');
+      const eu_lb  = createNode('hcloud_lb',      80,  290, 'eu-lb');
+      const us_lb  = createNode('aws_ec2',        320, 290, 'aws-frontend');
+      const eu_app = createNode('scaleway_server',80,  430, 'eu-app');
+      const eu_db  = createNode('ionos_db',       80,  570, 'eu-db');
+      const aws_db = createNode('aws_rds',        320, 430, 'us-db');
+      const vpn    = createNode('vpn',            200, 430, 'vpn-tunnel');
+      if (users && cdn)     createEdge(users.id,  cdn.id,   'HTTPS');
+      if (cdn && eu_lb)     createEdge(cdn.id,    eu_lb.id, 'EU routing');
+      if (cdn && us_lb)     createEdge(cdn.id,    us_lb.id, 'US routing');
+      if (eu_lb && eu_app)  createEdge(eu_lb.id,  eu_app.id,'HTTP');
+      if (eu_app && eu_db)  createEdge(eu_app.id, eu_db.id, 'TCP 5432');
+      if (us_lb && aws_db)  createEdge(us_lb.id,  aws_db.id,'TCP 3306');
+      if (eu_app && vpn)    createEdge(eu_app.id, vpn.id,   'encrypted');
+      if (aws_db && vpn)    createEdge(aws_db.id, vpn.id,   'encrypted');
+    },
+  };
+  TEMPLATES[name]?.();
+  setTimeout(() => { autoLayout(); }, 50);
+  showToast('Template loaded: ' + name);
+}
+
+// ── Palette drag-to-canvas ─────────────────────────────────────────────────
+let paletteGhostType = null;
+const ghost = document.getElementById('ghost-node');
+const ghostInner = document.getElementById('ghost-inner');
+
+function buildPalette() {
+  const palette = document.getElementById('palette');
+  if (!palette) return;
+  while (palette.firstChild) palette.removeChild(palette.firstChild);
+  CATEGORY_ORDER.forEach(cat => {
+    const items = Object.entries(NODE_TYPES).filter(([,v]) => v.category === cat);
+    if (!items.length) return;
+    const header = document.createElement('div');
+    header.className = 'text-[9px] font-bold text-gray-400 uppercase tracking-widest px-1 pt-3 pb-1';
+    header.textContent = CATEGORY_LABELS[cat];
+    palette.appendChild(header);
+    items.forEach(([key, def]) => {
+      const item = document.createElement('div');
+      item.className = 'palette-item';
+      item.dataset.nodeType = key;
+      const iconBox = document.createElement('div');
+      iconBox.className = 'palette-icon';
+      iconBox.style.background = def.color + '22';
+      const icon = document.createElement('i');
+      icon.className = 'fa-solid ' + def.icon;
+      icon.style.color = def.color;
+      iconBox.appendChild(icon);
+      const nameSpan = document.createElement('div');
+      nameSpan.className = 'text-[11px] text-gray-700 font-medium';
+      nameSpan.textContent = def.label;
+      const costSpan = document.createElement('div');
+      costSpan.className = 'text-[9px] text-gray-400';
+      costSpan.textContent = def.cost > 0 ? '€' + def.cost.toFixed(2) + '/mo' : '';
+      const info = document.createElement('div');
+      info.appendChild(nameSpan);
+      if (def.cost > 0) info.appendChild(costSpan);
+      item.appendChild(iconBox);
+      item.appendChild(info);
+      item.addEventListener('mousedown', onPaletteMouseDown);
+      palette.appendChild(item);
+    });
+  });
+}
+
+function buildMobilePalette() {
+  const container = document.getElementById('mobile-palette-content');
+  if (!container || container.children.length) return;
+  CATEGORY_ORDER.forEach(cat => {
+    const items = Object.entries(NODE_TYPES).filter(([,v]) => v.category === cat);
+    if (!items.length) return;
+    const header = document.createElement('div');
+    header.className = 'text-[9px] font-bold text-gray-400 uppercase tracking-widest px-1 pt-2 pb-1.5';
+    header.textContent = CATEGORY_LABELS[cat];
+    container.appendChild(header);
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-3 gap-1.5 mb-1';
+    items.forEach(([key, def]) => {
+      const btn = document.createElement('button');
+      btn.className = 'flex flex-col items-center gap-1 p-2 border border-gray-100 rounded bg-gray-50 active:bg-blue-50 text-center';
+      const iconBox = document.createElement('div');
+      iconBox.style.cssText = 'width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;background:' + def.color + '22';
+      const ic = document.createElement('i');
+      ic.className = 'fa-solid ' + def.icon;
+      ic.style.color = def.color;
+      iconBox.appendChild(ic);
+      const lbl = document.createElement('div');
+      lbl.className = 'text-[9px] text-gray-600 font-medium leading-tight';
+      lbl.textContent = def.label;
+      btn.appendChild(iconBox);
+      btn.appendChild(lbl);
+      btn.addEventListener('click', () => {
+        const canvas = document.getElementById('canvas-root');
+        const rect = canvas ? canvas.getBoundingClientRect() : {width:360,height:500};
+        const cx = (rect.width / 2 - state.pan.x) / state.zoom;
+        const cy = (rect.height / 2 - state.pan.y) / state.zoom;
+        createNode(key, cx - 60 + Math.random()*40-20, cy - 40 + Math.random()*40-20);
+        renderEdges();
+        updateCostSummary();
+        toggleMobilePalette();
+      });
+      grid.appendChild(btn);
+    });
+    container.appendChild(grid);
+  });
+}
+
+let mobilePaletteOpen = false;
+function toggleMobilePalette() {
+  buildMobilePalette();
+  mobilePaletteOpen = !mobilePaletteOpen;
+  const panel = document.getElementById('mobile-palette');
+  const overlay = document.getElementById('mobile-palette-overlay');
+  if (mobilePaletteOpen) {
+    panel.style.transform = 'translateY(0)';
+    overlay.classList.remove('hidden');
+  } else {
+    panel.style.transform = 'translateY(100%)';
+    overlay.classList.add('hidden');
+  }
+}
+
+function onPaletteMouseDown(e) {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const typeKey = e.currentTarget.dataset.nodeType;
+  const def = NODE_TYPES[typeKey]; if (!def) return;
+  paletteGhostType = typeKey;
+  // Build ghost
+  ghostInner.innerHTML = '';
+  ghostInner.style.borderTopColor = def.color;
+  ghostInner.style.borderTopWidth = '3px';
+  const iconD = document.createElement('div'); iconD.className='node-icon';
+  const ic = document.createElement('i'); ic.className='fa-solid '+def.icon; ic.style.color=def.color;
+  iconD.appendChild(ic); ghostInner.appendChild(iconD);
+  const lbl = document.createElement('div'); lbl.className='node-label'; lbl.textContent=def.label;
+  ghostInner.appendChild(lbl);
+  ghost.style.display = 'block';
+  moveGhost(e);
+  document.addEventListener('mousemove', onPaletteMouseMove);
+  document.addEventListener('mouseup', onPaletteMouseUp);
+}
+
+function moveGhost(e) {
+  ghost.style.left = (e.clientX + 8) + 'px';
+  ghost.style.top  = (e.clientY + 8) + 'px';
+}
+
+function onPaletteMouseMove(e) {
+  moveGhost(e);
+}
+
+function onPaletteMouseUp(e) {
+  ghost.style.display = 'none';
+  document.removeEventListener('mousemove', onPaletteMouseMove);
+  document.removeEventListener('mouseup', onPaletteMouseUp);
+  if (!paletteGhostType) return;
+  // Check if dropped on canvas
+  const root = document.getElementById('canvas-root');
+  const rect = root.getBoundingClientRect();
+  if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+    const pos = getCanvasCoords(e.clientX, e.clientY);
+    const node = createNode(paletteGhostType, pos.x - 60, pos.y - 40);
+    if (node) { selectNode(node.id); }
+  }
+  paletteGhostType = null;
+}
+
+// ── Export PNG ─────────────────────────────────────────────────────────────
+function exportPNG() {
+  showToast('Use browser screenshot or print to PDF for export.', false);
+  // In a full implementation, html2canvas would be used here
+}
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+  if (e.key === 's' || e.key === 'S') setMode('select');
+  if (e.key === 'c' || e.key === 'C') setMode('connect');
+  if (e.key === 'p' || e.key === 'P') setMode('pan');
+  if (e.key === 'Escape') { setMode('select'); selectNode(null); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z') { showToast('Undo not yet implemented.'); }
+});
+
+// ── Bootstrap ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    const { data } = await sb.from('profiles').select('is_pro').eq('id', session.user.id).single();
+    if (data?.is_pro) document.getElementById('header-pro-badge').classList.remove('hidden');
+  }
+  // Canvas events
+  const root = document.getElementById('canvas-root');
+  root.addEventListener('mousedown', onCanvasMouseDown);
+  root.addEventListener('wheel', onCanvasWheel, { passive: false });
+  buildPalette();
+  updateEmptyState();
+  updateCostSummary();
+});
+</script>
+</body>
+</html>

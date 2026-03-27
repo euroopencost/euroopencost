@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EuroOpenCost | Audit Engine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'eu-blue':'#0a1945','eu-border':'#e5e7eb','eu-terminal-green':'#10b981' },
+        fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'], mono:['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','monospace'] },
+      }
+    }
+  }
+</script>
+<style>
+  .grid-bg { background-color:#f8f9fa; background-image:linear-gradient(to right,#e5e7eb 1px,transparent 1px),linear-gradient(to bottom,#e5e7eb 1px,transparent 1px); background-size:50px 50px; }
+  .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
+  .nav-link:hover { color:#374151; border-color:#d1d5db; }
+  .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="text-gray-800 font-sans antialiased overflow-x-hidden min-h-screen grid-bg bg-[#f8f9fa]">
+
+<header class="bg-white/90 backdrop-blur-sm border-b border-eu-border sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="audit.html" class="nav-link active">
+            Audit Engine
+            <span id="nav-audit-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="policies.html" class="nav-link">
+            Sovereign Policies
+            <span id="nav-policies-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="treasury.html" class="nav-link">
+            Treasury
+            <span id="nav-treasury-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <span id="header-server-dot" class="w-2 h-2 rounded-full bg-gray-300" title="API server status"></span>
+        <a href="index.html#settings" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" title="Settings" style="text-decoration:none;">
+          <i class="fa-solid fa-gear text-sm"></i>
+        </a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="audit.html" class="nav-link-mobile">Audit Engine <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="policies.html" class="nav-link-mobile">Sovereign Policies <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="treasury.html" class="nav-link-mobile">Treasury <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="flex-1 min-w-0">
+
+    <!-- Gate -->
+    <div id="audit-gate" class="bg-white border border-eu-border shadow-sm flex flex-col items-center justify-center" style="min-height:500px">
+      <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
+        <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>
+        PREMIUM ACCESS REQUIRED
+        <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+      </p>
+      <a href="index.html#settings" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors" style="text-decoration:none;">
+        UPGRADE TO PRO
+      </a>
+    </div>
+
+    <!-- IDE Content (Pro) -->
+    <div id="audit-main" class="hidden">
+
+      <!-- Toolbar -->
+      <div class="flex items-center justify-between bg-white border border-eu-border px-4 py-2.5 mb-0 shadow-sm">
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-semibold text-gray-900 uppercase tracking-widest">AUDIT ENGINE</span>
+          <span class="text-gray-300">·</span>
+          <span id="ide-filename" class="text-xs font-mono text-gray-500">plan.json</span>
+          <span id="ide-resource-count" class="text-xs text-gray-400 hidden sm:inline">2 resources detected</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="ide-file-upload" class="cursor-pointer flex items-center gap-1 border border-gray-300 text-gray-600 text-xs font-medium px-3 py-1.5 hover:bg-gray-50 select-none">
+            <i class="fa-solid fa-upload text-[10px]"></i> Upload
+          </label>
+          <input id="ide-file-upload" type="file" accept=".json" class="hidden" onchange="handleIdeFileUpload(event)"/>
+          <button onclick="runAnalysis()" class="flex items-center gap-1 bg-eu-blue text-white text-xs font-medium px-3 py-1.5 hover:bg-blue-900 transition-colors">
+            <i class="fa-solid fa-play text-[10px]"></i> Analyze
+          </button>
+          <button onclick="downloadIdeResult()" class="flex items-center gap-1 border border-gray-300 text-gray-600 text-xs font-medium px-3 py-1.5 hover:bg-gray-50">
+            <i class="fa-solid fa-download text-[10px]"></i> Download
+          </button>
+          <span id="ide-status-msg" class="text-[10px] text-gray-400 ml-2 hidden sm:inline">Loading editor...</span>
+        </div>
+      </div>
+
+      <!-- 3-Column IDE Layout -->
+      <div class="flex border border-t-0 border-eu-border shadow-sm" style="height: calc(100vh - 220px); min-height: 520px;">
+
+        <!-- Left: Explorer + Analysis Info -->
+        <div class="w-44 bg-white border-r border-eu-border flex flex-col flex-shrink-0">
+          <div class="px-3 py-2.5 border-b border-eu-border">
+            <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">EXPLORER</span>
+          </div>
+          <div class="flex-1 px-2 py-2">
+            <div class="flex items-center gap-2 px-2 py-1.5 bg-eu-blue/5 border border-eu-blue/20 cursor-default rounded-sm">
+              <i class="fa-solid fa-file-code text-eu-blue text-[11px]"></i>
+              <span id="ide-explorer-filename" class="text-xs font-medium text-eu-blue truncate">plan.json</span>
+            </div>
+          </div>
+          <div class="border-t border-eu-border px-3 py-3">
+            <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">ANALYSIS</div>
+            <div class="space-y-1.5">
+              <div class="flex justify-between">
+                <span class="text-[10px] text-gray-500">Score</span>
+                <span id="ide-score-text" class="text-[10px] font-bold text-green-600">—</span>
+              </div>
+              <div id="ide-alerts-count" class="text-[10px] text-gray-500">Alerts: 0</div>
+              <div id="ide-analysis-status" class="text-[10px] text-gray-400 leading-tight">Ready</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle: Monaco Editor -->
+        <div class="flex-1 bg-[#1e1e1e] relative overflow-hidden">
+          <div id="monaco-container" class="w-full h-full"></div>
+        </div>
+
+        <!-- Right: Cost Panel -->
+        <div class="w-60 bg-white border-l border-eu-border flex flex-col flex-shrink-0">
+          <div class="px-4 py-2.5 border-b border-eu-border">
+            <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">COST ANALYSIS</span>
+          </div>
+          <div id="ide-cost-panel" class="flex-1 px-4 py-4 overflow-y-auto text-xs">
+            <p class="text-gray-400 text-center mt-6">Run analysis to see costs</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://pquqtyfezwagzeujweqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdXF0eWZlendhZ3pldWp3ZXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTk5ODIsImV4cCI6MjA5MDE3NTk4Mn0.SP8ZvG64595-IflvEhZTodWVzGJYoqszfj1zlRGR66M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let authUser    = null;
+let authProfile = null;
+
+const state = {
+  apiEndpoint: localStorage.getItem('eucost_api')   || 'http://localhost:8080',
+  monacoLoaded: false,
+  monacoEditor: null,
+  lastAnalysis: null,
+  history: JSON.parse(localStorage.getItem('eucost_history') || '[]'),
+};
+function isPro() { return authProfile?.is_pro === true; }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n) { return Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt4(n) { return Number(n).toFixed(4); }
+function downloadFile(name, content, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content],{type})); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function countResources(obj) {
+  try { const p = obj.planned_values?.root_module?.resources||[]; const c = obj.resource_changes||[]; return Math.max(p.length,c.length); } catch(e){return 0;}
+}
+function showToast(msg, isError) {
+  const t = document.getElementById('toast'), m = document.getElementById('toast-msg');
+  if (!t||!m) return; m.textContent = msg;
+  t.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none '+(isError?'bg-red-600':'bg-eu-blue');
+  t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0';},3500);
+}
+function isEuProvider(p) { return ['hetzner','otc','stackit','ionos','ovh','scaleway','exoscale','upcloud'].includes(String(p).toLowerCase()); }
+
+// ── Browser-side price DB (used as fallback when no backend is running) ──
+const BROWSER_PRICE_DB = {
+  hcloud_server: {
+    cx11:{m:3.79,h:0.0053,sovereign:true,label:'Hetzner CX11'},
+    cx21:{m:5.83,h:0.0081,sovereign:true,label:'Hetzner CX21'},
+    cx31:{m:10.59,h:0.0147,sovereign:true,label:'Hetzner CX31'},
+    cx41:{m:19.55,h:0.0271,sovereign:true,label:'Hetzner CX41'},
+    cx51:{m:37.09,h:0.0515,sovereign:true,label:'Hetzner CX51'},
+    cpx11:{m:4.35,h:0.0060,sovereign:true,label:'Hetzner CPX11'},
+    cpx21:{m:7.55,h:0.0105,sovereign:true,label:'Hetzner CPX21'},
+    cpx31:{m:13.09,h:0.0182,sovereign:true,label:'Hetzner CPX31'},
+    _default:{m:5.83,h:0.0081,sovereign:true,label:'Hetzner Server'},
+  },
+  hcloud_volume: { _default:{m:0.0476,h:0,sovereign:true,label:'Hetzner Volume',perGB:true} },
+  hcloud_load_balancer: { _default:{m:5.39,h:0.0075,sovereign:true,label:'Hetzner LB'} },
+  ovh_cloud_project_instance: {
+    's1-2':{m:3.50,h:0.0049,sovereign:true,label:'OVH S1-2'},
+    's1-4':{m:7.00,h:0.0097,sovereign:true,label:'OVH S1-4'},
+    's1-8':{m:14.00,h:0.0194,sovereign:true,label:'OVH S1-8'},
+    'b2-7':{m:22.40,h:0.0311,sovereign:true,label:'OVH B2-7'},
+    _default:{m:7.00,h:0.0097,sovereign:true,label:'OVH Instance'},
+  },
+  ionoscloud_server: { _default:{m:10.30,h:0.0143,sovereign:true,label:'IONOS Server'} },
+  ionoscloud_volume: { _default:{m:0.08,h:0,sovereign:true,label:'IONOS Volume',perGB:true} },
+  stackit_server:    { _default:{m:1.10,h:0.0015,sovereign:true,label:'STACKIT Server'} },
+  scaleway_instance_server: {
+    'DEV1-S':{m:2.99,h:0.0042,sovereign:true,label:'Scaleway DEV1-S'},
+    'DEV1-M':{m:5.99,h:0.0083,sovereign:true,label:'Scaleway DEV1-M'},
+    'GP1-XS':{m:14.99,h:0.0208,sovereign:true,label:'Scaleway GP1-XS'},
+    _default:{m:5.99,h:0.0083,sovereign:true,label:'Scaleway Instance'},
+  },
+  opentelekomcloud_compute_instance_v2: {
+    's3.small.1':{m:6.50,h:0.0090,sovereign:true,label:'OTC s3.small.1'},
+    's3.medium.4':{m:38.09,h:0.0529,sovereign:true,label:'OTC s3.medium.4'},
+    's3.large.2':{m:25.00,h:0.0347,sovereign:true,label:'OTC s3.large.2'},
+    _default:{m:25.00,h:0.0347,sovereign:true,label:'OTC Instance'},
+  },
+  opentelekomcloud_blockstorage_volume_v2: { _default:{m:0.05,h:0,sovereign:true,label:'OTC Volume',perGB:true} },
+  aws_instance:          { _default:{m:35.00,h:0.0486,sovereign:false,label:'AWS EC2'} },
+  aws_s3_bucket:         { _default:{m:2.00, h:0,     sovereign:false,label:'AWS S3'} },
+  google_compute_instance:{ _default:{m:30.00,h:0.0417,sovereign:false,label:'GCP Compute'} },
+  azurerm_linux_virtual_machine:{_default:{m:32.00,h:0.0444,sovereign:false,label:'Azure VM'}},
+  azurerm_windows_virtual_machine:{_default:{m:40.00,h:0.0556,sovereign:false,label:'Azure VM (Win)'}},
+};
+
+function browserAnalyze(jsonContent) {
+  let plan;
+  try { plan = JSON.parse(jsonContent); } catch(e) { showToast('Invalid JSON — cannot parse plan', true); return null; }
+  const resources = [];
+  function walkResources(module) {
+    (module.resources||[]).forEach(r => {
+      const db = BROWSER_PRICE_DB[r.type];
+      if (!db) return;
+      const vals = r.values || (r.change?.after) || {};
+      const key = (vals.server_type||vals.flavor_name||vals.machine_type||vals.instance_type||vals.type||'').toLowerCase();
+      const entry = db[key] || db._default;
+      if (!entry) return;
+      let monthly = entry.m;
+      if (entry.perGB) monthly = monthly * (Number(vals.size)||50);
+      resources.push({
+        name: r.address || r.name || r.type,
+        type: r.type,
+        display_type: entry.label + (entry.perGB ? ' ('+( Number(vals.size)||50)+'GB)' : ''),
+        monthly_price: monthly.toFixed(2),
+        hourly_price: (entry.h*(entry.perGB?(Number(vals.size)||50):1)).toFixed(4),
+        sovereign: entry.sovereign,
+        provider: entry.sovereign ? 'eu' : 'non-eu',
+      });
+    });
+    (module.child_modules||[]).forEach(cm => walkResources(cm));
+  }
+  const root = plan.planned_values?.root_module || plan.resource_changes ? {resources:(plan.resource_changes||[]).map(rc=>({...rc,values:rc.change?.after||{}}))} : {};
+  walkResources(plan.planned_values?.root_module || root);
+  if (resources.length===0) { showToast('No recognized resources found in plan', true); return null; }
+  const totalMonthly = resources.reduce((s,r)=>s+parseFloat(r.monthly_price),0);
+  const totalHourly  = resources.reduce((s,r)=>s+parseFloat(r.hourly_price),0);
+  const sovereignCount = resources.filter(r=>r.sovereign).length;
+  const score = Math.round((sovereignCount/resources.length)*100);
+  const alerts = resources.filter(r=>!r.sovereign).map(r=>`${r.name} uses non-EU provider — consider EU alternative`);
+  return { resources, totals:{monthly:totalMonthly,hourly:totalHourly}, score, alerts, _source:'browser' };
+}
+
+async function callAnalyzeAPI(jsonContent) {
+  try {
+    const resp = await fetch(state.apiEndpoint + '/api/v1/analyze', {
+      method: 'POST', body: jsonContent, signal: AbortSignal.timeout(5000),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (authUser ? (await sb.auth.getSession()).data.session?.access_token : '') }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    state.lastAnalysis = data;
+    saveToHistory(data, jsonContent);
+    showToast('Analysis complete — ' + (data.resources||[]).length + ' resources');
+    return data;
+  } catch (err) {
+    // Backend unreachable → fall back to browser-side analysis
+    const data = browserAnalyze(jsonContent);
+    if (data) {
+      state.lastAnalysis = data;
+      saveToHistory(data, jsonContent);
+      showToast('Browser mode — ' + data.resources.length + ' resources analyzed');
+      return data;
+    }
+    showToast('Analysis failed: ' + err.message, true);
+    return null;
+  }
+}
+
+function saveToHistory(data, raw) {
+  const entry = { id:Date.now(), date:new Date().toLocaleString('de-DE'), resources:(data.resources||[]).length, monthly:data.totals?data.totals.monthly:0, score:data.score||0, data };
+  state.history.unshift(entry);
+  if (state.history.length>20) state.history = state.history.slice(0,20);
+  localStorage.setItem('eucost_history', JSON.stringify(state.history));
+}
+
+function renderIdeCostPanel(data) {
+  const resources = data.resources||[], total = data.totals||{}, alerts = data.alerts||[];
+  const el = document.getElementById('ide-cost-panel');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="mb-4"><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Monthly Total</p><p class="text-2xl font-bold text-eu-blue tabular-nums">€ ${fmt(total.monthly||0)}</p><p class="text-[10px] text-gray-400">€ ${fmt4(total.hourly||0)} / hour</p></div>
+    <div class="mb-4"><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Sovereign Score</p><div class="flex items-center gap-2"><div class="flex-1 h-1.5 bg-gray-100 overflow-hidden"><div class="h-full bg-green-500 transition-all duration-500" style="width:${data.score||0}%"></div></div><span class="text-xs font-bold text-green-600">${data.score||0}%</span></div></div>
+    ${alerts.length>0?`<div class="mb-4 bg-red-50 border border-red-200 p-3 space-y-1">${alerts.map(a=>`<p class="text-[11px] text-red-600">⚠ ${escHtml(a)}</p>`).join('')}</div>`:''}
+    <div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Resources</p><div class="space-y-2">${resources.map(r=>`<div class="bg-gray-50 p-2 border border-gray-100"><div class="flex justify-between items-start"><p class="text-[11px] font-semibold text-eu-blue leading-tight flex-1 min-w-0 truncate pr-1">${escHtml(r.name)}</p><p class="text-[11px] font-bold text-eu-blue tabular-nums flex-shrink-0">€${r.monthly_price||'0.00'}</p></div><p class="text-[10px] text-gray-400 mt-0.5">${escHtml(r.display_type||r.type||'')}</p></div>`).join('')}</div></div>`;
+}
+
+async function runAnalysis() {
+  if (!isPro()) { window.location.href = 'index.html#settings'; return; }
+  const statusEl = document.getElementById('ide-status-msg');
+  const analysisEl = document.getElementById('ide-analysis-status');
+  if (statusEl) statusEl.textContent = 'Analyzing...';
+  if (analysisEl) analysisEl.textContent = '⏳ Analyzing...';
+  const jsonContent = state.monacoEditor ? state.monacoEditor.getValue() : '';
+  const data = await callAnalyzeAPI(jsonContent);
+  if (!data) {
+    if (statusEl) statusEl.textContent = 'Error — check toast';
+    if (analysisEl) analysisEl.textContent = '❌ Request failed';
+    return;
+  }
+  const scoreEl = document.getElementById('ide-score-text');
+  if (scoreEl) scoreEl.textContent = (data.score||0) + '%';
+  if (statusEl) statusEl.textContent = 'Analysis complete';
+  if (analysisEl) analysisEl.textContent = '✅ Done — ' + (data.resources||[]).length + ' resources';
+  const alerts = data.alerts||[];
+  const alertsEl = document.getElementById('ide-alerts-count');
+  if (alertsEl) alertsEl.textContent = alerts.length===0 ? 'Alerts: 0' : '⚠ Alerts: ' + alerts.length;
+  renderIdeCostPanel(data);
+}
+
+function handleIdeFileUpload(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    if (state.monacoEditor?.setValue) state.monacoEditor.setValue(e.target.result);
+    const fn = document.getElementById('ide-filename'), fn2 = document.getElementById('ide-explorer-filename');
+    if (fn) fn.textContent = file.name; if (fn2) fn2.textContent = file.name;
+    const st = document.getElementById('ide-status-msg'); if (st) st.textContent = file.name + ' loaded';
+    showToast('Loaded ' + file.name);
+  };
+  reader.readAsText(file);
+}
+
+function downloadIdeResult() {
+  if (!state.lastAnalysis) { showToast('Run analysis first', true); return; }
+  downloadFile('eucost-analysis.json', JSON.stringify(state.lastAnalysis,null,2), 'application/json');
+  showToast('Downloading JSON report...');
+}
+
+function initMonaco() {
+  if (state.monacoLoaded) return;
+  state.monacoLoaded = true;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js';
+  script.onload = () => {
+    require.config({paths:{vs:'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs'}});
+    require(['vs/editor/editor.main'], () => {
+      state.monacoEditor = monaco.editor.create(document.getElementById('monaco-container'), {
+        value: DEFAULT_PLAN_JSON, language:'json', theme:'vs-dark', fontSize:13, lineHeight:20,
+        minimap:{enabled:false}, automaticLayout:true, wordWrap:'on', scrollBeyondLastLine:false,
+        renderLineHighlight:'all', fontFamily:"'Fira Code','Courier New',monospace", fontLigatures:true,
+      });
+      state.monacoEditor.onDidChangeModelContent(() => {
+        try {
+          const count = countResources(JSON.parse(state.monacoEditor.getValue()));
+          const el = document.getElementById('ide-resource-count'); if (el) el.textContent = count + ' resources detected';
+        } catch(e) { const el = document.getElementById('ide-resource-count'); if(el) el.textContent='invalid JSON'; }
+      });
+      const st = document.getElementById('ide-status-msg'); if (st) st.textContent = 'Editor ready';
+    });
+  };
+  script.onerror = () => {
+    const c = document.getElementById('monaco-container');
+    if (c) c.innerHTML = '<textarea id="monaco-fallback" style="width:100%;height:100%;padding:16px;background:#1e1e1e;color:#d4d4d4;font-family:Consolas,monospace;font-size:13px;border:none;outline:none;resize:none">'+escHtml(DEFAULT_PLAN_JSON)+'</textarea>';
+    state.monacoEditor = {getValue:()=>{const fb=document.getElementById('monaco-fallback');return fb?fb.value:DEFAULT_PLAN_JSON;}};
+    const st = document.getElementById('ide-status-msg'); if(st) st.textContent='Fallback editor (offline)';
+  };
+  document.head.appendChild(script);
+}
+
+const DEFAULT_PLAN_JSON = `{
+  "format_version": "1.0",
+  "terraform_version": "1.6.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "opentelekomcloud_compute_instance_v2.web",
+          "type": "opentelekomcloud_compute_instance_v2",
+          "name": "web-server",
+          "values": { "flavor_name": "s3.large.2" }
+        },
+        {
+          "address": "opentelekomcloud_blockstorage_volume_v2.boot",
+          "type": "opentelekomcloud_blockstorage_volume_v2",
+          "name": "web-server-boot",
+          "values": { "volume_type": "SSD", "size": 100 }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "opentelekomcloud_compute_instance_v2.web",
+      "type": "opentelekomcloud_compute_instance_v2",
+      "name": "web-server",
+      "change": { "actions": ["create"], "after": { "flavor_name": "s3.large.2" } }
+    },
+    {
+      "address": "opentelekomcloud_blockstorage_volume_v2.boot",
+      "type": "opentelekomcloud_blockstorage_volume_v2",
+      "name": "web-server-boot",
+      "change": { "actions": ["create"], "after": { "volume_type": "SSD", "size": 100 } }
+    }
+  ]
+}`;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    authUser = session.user;
+    const { data } = await sb.from('profiles').select('is_pro').eq('id', authUser.id).single();
+    authProfile = data;
+  }
+  const pro = isPro();
+  document.getElementById('audit-gate').classList.toggle('hidden', pro);
+  document.getElementById('audit-main').classList.toggle('hidden', !pro);
+  if (pro) {
+    document.getElementById('header-pro-badge').classList.remove('hidden');
+    ['audit','policies','treasury'].forEach(t => {
+      const el = document.getElementById('nav-'+t+'-lock');
+      if (el) el.style.display = 'none';
+    });
+    initMonaco();
+  }
+  // Mobile menu toggle
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  // Health check dot
+  fetch(state.apiEndpoint + '/api/v1/health', {signal:AbortSignal.timeout(3000)})
+    .then(r => { if(r.ok) { const d = document.getElementById('header-server-dot'); if(d) d.className='w-2 h-2 rounded-full bg-green-500'; } })
+    .catch(() => {});
+});
+</script>
+</body>
+</html>

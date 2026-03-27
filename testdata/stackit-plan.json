@@ -1,0 +1,100 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "stackit_security_group.main",
+          "mode": "managed",
+          "type": "stackit_security_group",
+          "name": "main",
+          "provider_name": "registry.terraform.io/stackitcloud/stackit",
+          "schema_version": 0,
+          "values": {
+            "project_id": "00000000-0000-0000-0000-000000000000",
+            "name": "otc-cost-test-sg",
+            "description": "Test Security Group",
+            "stateful": true,
+            "labels": {},
+            "region": "eu01",
+            "security_group_id": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "stackit_security_group_rule.ssh",
+          "mode": "managed",
+          "type": "stackit_security_group_rule",
+          "name": "ssh",
+          "provider_name": "registry.terraform.io/stackitcloud/stackit",
+          "schema_version": 0,
+          "values": {
+            "project_id": "00000000-0000-0000-0000-000000000000",
+            "security_group_id": "00000000-0000-0000-0000-000000000001",
+            "direction": "ingress",
+            "ether_type": "IPv4",
+            "protocol": "TCP",
+            "ip_range": "0.0.0.0/0",
+            "description": "SSH",
+            "region": "eu01",
+            "remote_security_group_id": null,
+            "security_group_rule_id": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "stackit_server.main",
+          "mode": "managed",
+          "type": "stackit_server",
+          "name": "main",
+          "provider_name": "registry.terraform.io/stackitcloud/stackit",
+          "schema_version": 0,
+          "values": {
+            "project_id": "00000000-0000-0000-0000-000000000000",
+            "name": "otc-cost-test-server",
+            "machine_type": "c3i.4",
+            "availability_zone": "eu01-1",
+            "image_id": null,
+            "keypair_name": null,
+            "user_data": null,
+            "desired_status": "ACTIVE",
+            "affinity_group": null,
+            "network_interfaces": null,
+            "labels": {},
+            "region": "eu01",
+            "server_id": null,
+            "created_at": null,
+            "launched_at": null,
+            "updated_at": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "stackit_volume.main",
+          "mode": "managed",
+          "type": "stackit_volume",
+          "name": "main",
+          "provider_name": "registry.terraform.io/stackitcloud/stackit",
+          "schema_version": 0,
+          "values": {
+            "project_id": "00000000-0000-0000-0000-000000000000",
+            "name": "otc-cost-test-volume",
+            "size": 50,
+            "availability_zone": "eu01-1",
+            "performance_class": "performance",
+            "description": null,
+            "labels": {},
+            "region": "eu01",
+            "volume_id": null,
+            "server_id": null,
+            "encrypted": null
+          },
+          "sensitive_values": {}
+        }
+      ]
+    }
+  }
+}

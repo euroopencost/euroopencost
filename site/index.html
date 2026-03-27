@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EuroOpenCost | Fiscal Governance Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'eu-blue':         '#0a1945',
+          'eu-gray':         '#6b7280',
+          'eu-bg':           '#f3f4f6',
+          'eu-terminal-bg':  '#000000',
+          'eu-terminal-text':'#f3f4f6',
+          'eu-terminal-green':'#10b981',
+          'eu-border':       '#e5e7eb',
+        },
+        fontFamily: {
+          sans: ['Inter','ui-sans-serif','system-ui','-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif'],
+          mono: ['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','Liberation Mono','Courier New','monospace'],
+        },
+      }
+    }
+  }
+</script>
+<style>
+  .grid-bg {
+    background-color: #f8f9fa;
+    background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+                      linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  .nav-link {
+    border-bottom: 2px solid transparent;
+    color: #6b7280;
+    display: inline-flex; align-items: center;
+    padding: 4px 4px 4px;
+    font-size: 0.875rem; font-weight: 500;
+    text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+    white-space: nowrap;
+  }
+  .nav-link:hover { color: #374151; border-color: #d1d5db; }
+  .nav-link.active { color: #111827; border-color: #0a1930; font-weight: 600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="text-gray-800 font-sans antialiased overflow-x-hidden min-h-screen grid-bg bg-[#f8f9fa]">
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════════ -->
+<header class="bg-white/90 backdrop-blur-sm border-b border-eu-border sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+
+      <!-- Left: logo + nav -->
+      <div class="flex items-center space-x-8">
+        <span class="text-2xl font-bold text-eu-blue tracking-tight select-none">eucost</span>
+        <nav class="hidden md:flex space-x-6">
+          <a id="nav-dashboard" class="nav-link active" onclick="navigate('dashboard')">Dashboard</a>
+          <a href="audit.html" class="nav-link">
+            Audit Engine
+            <span id="nav-audit-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="policies.html" class="nav-link">
+            Sovereign Policies
+            <span id="nav-policies-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="treasury.html" class="nav-link">
+            Treasury
+            <span id="nav-treasury-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+
+      <!-- Right: CFO OFFICE, server dot, settings -->
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <span id="header-server-dot" class="w-2 h-2 rounded-full bg-gray-300" title="API server status"></span>
+        <button onclick="navigate('settings')" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" title="Settings">
+          <i class="fa-solid fa-gear text-sm"></i>
+        </button>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="audit.html" class="nav-link-mobile">Audit Engine <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="policies.html" class="nav-link-mobile">Sovereign Policies <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="treasury.html" class="nav-link-mobile">Treasury <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN WRAPPER
+═══════════════════════════════════════════════════════════ -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
+
+  <!-- MAIN CONTENT -->
+  <main id="main-content" class="flex-1 min-w-0">
+
+    <!-- ══════════════════════════════════════
+         TAB: DASHBOARD
+    ══════════════════════════════════════ -->
+    <div id="tab-dashboard" class="tab-pane active">
+
+      <!-- Dashboard Header -->
+      <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+        <div>
+          <h1 class="text-3xl sm:text-4xl font-normal text-gray-900 leading-tight">
+            EuroOpenCost:<br/>
+            Fiscal Governance<br/>
+            Dashboard
+          </h1>
+          <p class="mt-2 text-sm text-gray-500 uppercase tracking-wider">CFO OFFICE</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <label for="plan-upload" class="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-50 focus:outline-none select-none">
+            <i class="fa-solid fa-upload mr-1.5 text-xs"></i>LOAD PLAN
+          </label>
+          <input id="plan-upload" type="file" accept=".json" class="hidden" onchange="handleFileUpload(event)"/>
+          <a href="audit.html" class="bg-eu-blue text-white px-4 py-2 text-sm font-medium hover:bg-blue-900 transition-colors" style="text-decoration:none;">
+            DEPLOY
+          </a>
+        </div>
+      </div>
+
+      <!-- Row 1: Provider Management + Sovereign Treasury -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        <!-- Provider Management -->
+        <div class="bg-white border border-eu-border p-6 shadow-sm">
+          <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">PROVIDER MANAGEMENT</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Hetzner -->
+            <div onclick="selectProvider('hetzner')" class="border border-eu-blue bg-gray-50 p-4 flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow">
+              <div class="flex-1 flex items-center justify-center py-6">
+                <span class="text-2xl font-bold uppercase tracking-tighter text-[#d32f2f]">HETZNER</span>
+              </div>
+              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
+                Hetzner: <span class="text-green-600 font-medium">Active</span>, <span id="hetzner-price">€14.80</span>/mo
+              </div>
+            </div>
+            <!-- OTC -->
+            <div onclick="selectProvider('otc')" class="border border-gray-200 p-4 flex flex-col justify-between cursor-pointer hover:border-eu-blue hover:shadow-md transition-all">
+              <div class="flex-1 flex items-center justify-center py-6 space-x-1">
+                <span class="text-3xl font-bold text-pink-600">T</span>
+                <span class="text-2xl font-bold text-gray-700">OTC</span>
+              </div>
+              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
+                OTC: <span class="text-green-600 font-medium">Active</span>, <span id="otc-price">€14.80</span>/mo
+              </div>
+            </div>
+            <!-- IONOS -->
+            <div onclick="selectProvider('ionos')" class="border border-gray-200 p-4 flex flex-col justify-between cursor-pointer hover:border-eu-blue hover:shadow-md transition-all">
+              <div class="flex-1 flex items-center justify-center py-6">
+                <span class="text-2xl font-bold text-blue-900 tracking-widest">IONOS</span>
+              </div>
+              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
+                IONOS: <span class="text-green-600 font-medium">Active</span>, <span id="ionos-price">€10.30</span>/mo
+              </div>
+            </div>
+            <!-- STACKIT -->
+            <div onclick="selectProvider('stackit')" class="border border-gray-200 p-4 flex flex-col justify-between cursor-pointer hover:border-eu-blue hover:shadow-md transition-all">
+              <div class="flex-1 flex items-center justify-center py-6">
+                <span class="text-2xl font-bold text-gray-900 tracking-tighter">STACKIT</span>
+              </div>
+              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
+                STACKIT: <span class="text-green-600 font-medium">Active</span>, <span id="stackit-price">€1.10</span>/mo
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: Sovereign Treasury + Analytics -->
+        <div class="space-y-6">
+
+          <!-- SOVEREIGN TREASURY (Pro-locked) -->
+          <div class="bg-white border border-eu-border p-6 shadow-sm relative overflow-hidden">
+            <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">SOVEREIGN TREASURY &amp; GUARDRAILS</h2>
+            <!-- Real content when Pro -->
+            <div id="sovtr-main" class="hidden space-y-0">
+              <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-xs text-gray-500 uppercase tracking-wider">Monthly Forecast</span>
+                <span id="sovtr-monthly" class="text-sm font-bold text-eu-blue tabular-nums">€0.00</span>
+              </div>
+              <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-xs text-gray-500 uppercase tracking-wider">Sovereign Score</span>
+                <span id="sovtr-score" class="text-sm font-bold text-green-600">—</span>
+              </div>
+              <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                <span class="text-xs text-gray-500 uppercase tracking-wider">Resources</span>
+                <span id="sovtr-resources" class="text-sm font-bold text-eu-blue">—</span>
+              </div>
+              <div class="flex justify-between items-center py-3">
+                <span class="text-xs text-gray-500 uppercase tracking-wider">Policy Alerts</span>
+                <span id="sovtr-alerts" class="text-sm font-bold text-green-600">0</span>
+              </div>
+            </div>
+            <!-- Blurred placeholder (Community) -->
+            <div id="sovtr-blur" class="space-y-4 filter blur-[2px] opacity-60">
+              <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+              <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+            <!-- Premium Overlay -->
+            <div id="sovtr-gate" class="absolute inset-0 flex flex-col items-center justify-center z-10 backdrop-blur-md bg-white/60">
+              <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
+                <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>
+                PREMIUM ACCESS REQUIRED
+                <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+              </p>
+              <button onclick="navigate('settings')" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors focus:outline-none">
+                UPGRADE TO PRO
+              </button>
+            </div>
+          </div>
+
+          <!-- Analytics Chart -->
+          <div class="bg-white border border-eu-border p-6 shadow-sm">
+            <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">ANALYTICS</h2>
+            <div class="flex justify-between items-end">
+              <!-- Cost Trend -->
+              <div class="w-1/2 pr-4">
+                <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Cost Trend</span></div>
+                <div class="h-20 border-b border-l border-gray-300 relative overflow-visible">
+                  <svg class="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
+                    <polyline fill="none" points="0,35 10,36 20,35 30,34 40,35 50,33 55,10 60,30 65,15 70,25 75,30 80,10 85,25 90,30 95,28 100,32" stroke="#2563eb" stroke-width="1.5"/>
+                  </svg>
+                  <span class="hidden sm:block absolute -left-5 top-0 text-[10px] text-gray-400">100</span>
+                  <span class="hidden sm:block absolute -left-3 bottom-0 text-[10px] text-gray-400">0</span>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400 mt-1"><span>30d ago</span><span>Today</span></div>
+              </div>
+              <!-- Sovereignty Status -->
+              <div class="w-1/2 pl-4">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-500">EU Sovereignty:</span>
+                  <span id="analytics-status" class="text-green-500 font-medium">OPTIMA</span>
+                </div>
+                <div class="h-20 border-b border-l border-gray-300 relative bg-gradient-to-b from-green-50 to-white overflow-visible">
+                  <div class="absolute top-2 w-full h-0.5 bg-green-400"></div>
+                  <span class="hidden sm:block absolute -left-5 top-0 text-[10px] text-gray-400">100</span>
+                  <span class="hidden sm:block absolute -left-3 bottom-0 text-[10px] text-gray-400">0</span>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400 mt-1"><span>Sovereign</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Terminal -->
+      <div class="bg-eu-terminal-bg text-eu-terminal-text font-mono text-sm p-4 rounded-sm shadow-md">
+        <div id="terminal-lines">
+          <div class="text-eu-terminal-green mb-1">&gt; eucost plan real-plan.json</div>
+          <div class="mb-1">Loading infrastructure state...</div>
+          <div class="mb-1">Plan generation complete.</div>
+          <div id="terminal-result" class="mb-2">+3 resources to add, ~€45.20/mo increase.</div>
+        </div>
+        <div class="flex items-center">
+          <span class="mr-2">&gt;</span>
+          <span class="w-2 h-4 bg-white animate-pulse"></span>
+        </div>
+      </div>
+
+    </div><!-- /tab-dashboard -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: AUDIT ENGINE (Web IDE)
+    ══════════════════════════════════════ -->
+    <div id="tab-audit" class="tab-pane">
+
+      <!-- Pro Gate -->
+      <div id="audit-gate" class="bg-white border border-eu-border shadow-sm flex flex-col items-center justify-center" style="min-height:500px">
+        <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
+          <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>
+          PREMIUM ACCESS REQUIRED
+          <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+        </p>
+        <button onclick="navigate('settings')" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors">
+          UPGRADE TO PRO
+        </button>
+      </div>
+
+      <!-- IDE Content (Pro) -->
+      <div id="audit-main" class="hidden">
+
+        <!-- Toolbar -->
+        <div class="flex items-center justify-between bg-white border border-eu-border px-4 py-2.5 mb-0 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="text-[10px] font-semibold text-gray-900 uppercase tracking-widest">AUDIT ENGINE</span>
+            <span class="text-gray-300">·</span>
+            <span id="ide-filename" class="text-xs font-mono text-gray-500">plan.json</span>
+            <span id="ide-resource-count" class="text-xs text-gray-400 hidden sm:inline">2 resources detected</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="ide-file-upload" class="cursor-pointer flex items-center gap-1 border border-gray-300 text-gray-600 text-xs font-medium px-3 py-1.5 hover:bg-gray-50 select-none">
+              <i class="fa-solid fa-upload text-[10px]"></i> Upload
+            </label>
+            <input id="ide-file-upload" type="file" accept=".json" class="hidden" onchange="handleIdeFileUpload(event)"/>
+            <button onclick="runAnalysis()" class="flex items-center gap-1 bg-eu-blue text-white text-xs font-medium px-3 py-1.5 hover:bg-blue-900 transition-colors">
+              <i class="fa-solid fa-play text-[10px]"></i> Analyze
+            </button>
+            <button onclick="downloadIdeResult()" class="flex items-center gap-1 border border-gray-300 text-gray-600 text-xs font-medium px-3 py-1.5 hover:bg-gray-50">
+              <i class="fa-solid fa-download text-[10px]"></i> Download
+            </button>
+            <span id="ide-status-msg" class="text-[10px] text-gray-400 ml-2 hidden sm:inline">Loading editor...</span>
+          </div>
+        </div>
+
+        <!-- 3-Column IDE Layout -->
+        <div class="flex border border-t-0 border-eu-border shadow-sm" style="height: calc(100vh - 220px); min-height: 520px;">
+
+          <!-- Left: Explorer + Analysis Info -->
+          <div class="w-44 bg-white border-r border-eu-border flex flex-col flex-shrink-0">
+            <div class="px-3 py-2.5 border-b border-eu-border">
+              <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">EXPLORER</span>
+            </div>
+            <div class="flex-1 px-2 py-2">
+              <div class="flex items-center gap-2 px-2 py-1.5 bg-eu-blue/5 border border-eu-blue/20 cursor-default rounded-sm">
+                <i class="fa-solid fa-file-code text-eu-blue text-[11px]"></i>
+                <span id="ide-explorer-filename" class="text-xs font-medium text-eu-blue truncate">plan.json</span>
+              </div>
+            </div>
+            <!-- Analysis Summary -->
+            <div class="border-t border-eu-border px-3 py-3">
+              <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">ANALYSIS</div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between">
+                  <span class="text-[10px] text-gray-500">Score</span>
+                  <span id="ide-score-text" class="text-[10px] font-bold text-green-600">—</span>
+                </div>
+                <div id="ide-alerts-count" class="text-[10px] text-gray-500">Alerts: 0</div>
+                <div id="ide-analysis-status" class="text-[10px] text-gray-400 leading-tight">Ready</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Middle: Monaco Editor -->
+          <div class="flex-1 bg-[#1e1e1e] relative overflow-hidden">
+            <div id="monaco-container" class="w-full h-full"></div>
+          </div>
+
+          <!-- Right: Cost Panel -->
+          <div class="w-60 bg-white border-l border-eu-border flex flex-col flex-shrink-0">
+            <div class="px-4 py-2.5 border-b border-eu-border">
+              <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">COST ANALYSIS</span>
+            </div>
+            <div id="ide-cost-panel" class="flex-1 px-4 py-4 overflow-y-auto text-xs">
+              <p class="text-gray-400 text-center mt-6">Run analysis to see costs</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /tab-audit -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: SOVEREIGN POLICIES
+    ══════════════════════════════════════ -->
+    <div id="tab-policies" class="tab-pane">
+
+      <!-- Pro Gate -->
+      <div id="policies-gate" class="bg-white border border-eu-border shadow-sm flex flex-col items-center justify-center" style="min-height:400px">
+        <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
+          <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>
+          PREMIUM ACCESS REQUIRED
+          <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+        </p>
+        <button onclick="navigate('settings')" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors">
+          UPGRADE TO PRO
+        </button>
+      </div>
+
+      <!-- Policies Content -->
+      <div id="policies-main" class="hidden space-y-6">
+
+        <div class="mb-8">
+          <h1 class="text-4xl font-normal text-gray-900 leading-tight">Sovereign<br/>Policies</h1>
+          <p class="mt-2 text-sm text-gray-500 uppercase tracking-wider">COMPLIANCE AUDIT</p>
+        </div>
+
+        <!-- NIS2 Directive -->
+        <div class="bg-white border border-eu-border p-6 shadow-sm">
+          <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">NIS2 DIRECTIVE</h2>
+          <ul class="text-sm divide-y divide-gray-100">
+            <li class="py-3 flex items-center gap-3">
+              <i class="fa-solid fa-check text-green-500 w-4 text-center"></i>
+              <span class="text-gray-700">EU-based cloud infrastructure</span>
+            </li>
+            <li class="py-3 flex items-center gap-3">
+              <i class="fa-solid fa-check text-green-500 w-4 text-center"></i>
+              <span class="text-gray-700">Data residency in European Union</span>
+            </li>
+            <li class="py-3 flex items-center gap-3">
+              <i class="fa-solid fa-check text-green-500 w-4 text-center"></i>
+              <span class="text-gray-700">Provider subject to EU law (not US CLOUD Act)</span>
+            </li>
+            <li class="py-3 flex items-center gap-3">
+              <i class="fa-solid fa-minus text-gray-300 w-4 text-center"></i>
+              <span class="text-gray-400">Multi-zone redundancy (requires infrastructure plan)</span>
+            </li>
+            <li class="py-3 flex items-center gap-3">
+              <i class="fa-solid fa-minus text-gray-300 w-4 text-center"></i>
+              <span class="text-gray-400">Incident response SLA (requires provider contract)</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- GDPR Alignment -->
+        <div class="bg-white border border-eu-border p-6 shadow-sm">
+          <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">GDPR ALIGNMENT</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="border border-eu-blue p-4">
+              <i class="fa-solid fa-shield-halved text-eu-blue mb-2 block"></i>
+              <p class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Data Jurisdiction</p>
+              <p class="text-xs text-green-600 font-medium mt-1">EU Only — Confirmed</p>
+            </div>
+            <div class="border border-eu-blue p-4">
+              <i class="fa-solid fa-globe text-eu-blue mb-2 block"></i>
+              <p class="text-xs font-semibold text-gray-900 uppercase tracking-wider">US Cloud Act</p>
+              <p class="text-xs text-green-600 font-medium mt-1">Not Exposed</p>
+            </div>
+            <div class="border border-gray-200 p-4">
+              <i class="fa-solid fa-key text-gray-400 mb-2 block"></i>
+              <p class="text-xs font-semibold text-gray-900 uppercase tracking-wider">Encryption at Rest</p>
+              <p class="text-xs text-gray-400 font-medium mt-1">Not Assessed</p>
+            </div>
+            <div class="border border-gray-200 p-4">
+              <i class="fa-solid fa-file-contract text-gray-400 mb-2 block"></i>
+              <p class="text-xs font-semibold text-gray-900 uppercase tracking-wider">DPA Contract</p>
+              <p class="text-xs text-gray-400 font-medium mt-1">Not Assessed</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sovereign Score Breakdown -->
+        <div class="bg-white border border-eu-border p-6 shadow-sm">
+          <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">SOVEREIGN SCORE BREAKDOWN</h2>
+          <div id="policies-score-breakdown">
+            <p class="text-xs text-gray-400">Load a Terraform plan to see the sovereignty breakdown per resource.</p>
+          </div>
+          <div class="mt-6 pt-6 border-t border-gray-200">
+            <button onclick="downloadAuditDoc()" class="w-full bg-eu-blue text-white py-3 text-xs font-medium tracking-widest uppercase hover:bg-blue-900 transition-colors focus:outline-none">
+              DOWNLOAD SOVEREIGNTY CERTIFICATE
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /tab-policies -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: TREASURY (Reports)
+    ══════════════════════════════════════ -->
+    <div id="tab-treasury" class="tab-pane">
+
+      <!-- Pro Gate -->
+      <div id="treasury-gate" class="bg-white border border-eu-border shadow-sm flex flex-col items-center justify-center" style="min-height:400px">
+        <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
+          <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>
+          PREMIUM ACCESS REQUIRED
+          <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+        </p>
+        <button onclick="navigate('settings')" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors">
+          UPGRADE TO PRO
+        </button>
+      </div>
+
+      <!-- Treasury Content -->
+      <div id="treasury-main" class="hidden">
+        <div class="mb-8 flex justify-between items-end">
+          <div>
+            <h1 class="text-4xl font-normal text-gray-900 leading-tight">Treasury</h1>
+            <p class="mt-2 text-sm text-gray-500 uppercase tracking-wider">ANALYSIS HISTORY</p>
+          </div>
+          <button onclick="clearHistory()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-50">
+            CLEAR HISTORY
+          </button>
+        </div>
+        <div id="reports-list" class="space-y-4"></div>
+      </div>
+
+    </div><!-- /tab-treasury -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: SETTINGS
+    ══════════════════════════════════════ -->
+    <div id="tab-settings" class="tab-pane">
+
+      <div class="mb-8">
+        <h1 class="text-4xl font-normal text-gray-900 leading-tight">Settings</h1>
+        <p class="mt-2 text-sm text-gray-500 uppercase tracking-wider">CONFIGURATION</p>
+      </div>
+
+      <!-- Account / Auth -->
+      <div class="bg-white border border-eu-border p-6 shadow-sm mb-6">
+        <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">ACCOUNT</h2>
+
+        <!-- Logged out -->
+        <div id="auth-logged-out">
+          <div class="flex border-b border-eu-border mb-5">
+            <button onclick="showAuthTab('login')" id="auth-tab-login"
+              class="px-4 py-2 text-xs font-semibold text-eu-blue border-b-2 border-eu-blue -mb-px">LOGIN</button>
+            <button onclick="showAuthTab('register')" id="auth-tab-register"
+              class="px-4 py-2 text-xs font-medium text-gray-500 border-b-2 border-transparent -mb-px">REGISTER</button>
+          </div>
+
+          <!-- Login form -->
+          <div id="auth-form-login" class="space-y-3">
+            <input id="auth-email" type="email" placeholder="your@email.com"
+              class="w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-eu-blue"
+              onkeydown="if(event.key==='Enter')handleSignIn()"/>
+            <input id="auth-password" type="password" placeholder="Password"
+              class="w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-eu-blue"
+              onkeydown="if(event.key==='Enter')handleSignIn()"/>
+            <button onclick="handleSignIn()"
+              class="w-full bg-eu-blue text-white py-2.5 text-sm font-medium hover:bg-blue-900 transition-colors">
+              SIGN IN
+            </button>
+            <p class="text-xs text-gray-400">No account? <span onclick="showAuthTab('register')" class="text-eu-blue cursor-pointer underline">Register here</span></p>
+          </div>
+
+          <!-- Register form -->
+          <div id="auth-form-register" class="hidden space-y-3">
+            <input id="auth-reg-email" type="email" placeholder="your@email.com"
+              class="w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-eu-blue"
+              onkeydown="if(event.key==='Enter')handleSignUp()"/>
+            <input id="auth-reg-password" type="password" placeholder="Password (min. 8 characters)"
+              class="w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-eu-blue"
+              onkeydown="if(event.key==='Enter')handleSignUp()"/>
+            <button onclick="handleSignUp()"
+              class="w-full bg-eu-blue text-white py-2.5 text-sm font-medium hover:bg-blue-900 transition-colors">
+              CREATE ACCOUNT
+            </button>
+            <p class="text-xs text-gray-400">Already have an account? <span onclick="showAuthTab('login')" class="text-eu-blue cursor-pointer underline">Sign in</span></p>
+          </div>
+
+          <p id="auth-error-msg" class="hidden text-xs text-red-500 font-medium mt-3"></p>
+          <p id="auth-success-msg" class="hidden text-xs text-green-600 font-medium mt-3"></p>
+        </div>
+
+        <!-- Logged in -->
+        <div id="auth-logged-in" class="hidden">
+          <div class="flex items-center gap-3 mb-5">
+            <div id="auth-avatar" class="w-10 h-10 bg-eu-blue flex items-center justify-center text-white text-sm font-bold flex-shrink-0">U</div>
+            <div class="min-w-0">
+              <p id="auth-email-display" class="text-sm font-medium text-gray-900 truncate">user@email.com</p>
+              <p id="auth-tier-display" class="text-xs text-gray-500 mt-0.5">Community</p>
+            </div>
+            <span id="auth-pro-badge" class="hidden ml-auto bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest flex-shrink-0">PRO</span>
+          </div>
+          <div class="border-t border-eu-border pt-4 flex items-center justify-between">
+            <p class="text-xs text-gray-400">Pro access is granted by the admin after account creation.</p>
+            <button onclick="handleSignOut()" class="text-xs text-gray-400 hover:text-red-500 underline flex-shrink-0 ml-4">Sign out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Endpoint -->
+      <div class="bg-white border border-eu-border p-6 shadow-sm mb-6">
+        <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">
+          API ENDPOINT
+          <span id="api-status-dot" class="inline-block w-2 h-2 rounded-full bg-gray-300 ml-2 align-middle"></span>
+        </h2>
+        <div class="flex gap-3 mb-3">
+          <input id="api-endpoint-input" type="text" value="http://localhost:8080"
+            class="flex-1 border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:border-eu-blue"/>
+          <button onclick="saveApiEndpoint()" class="border border-gray-300 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-50">
+            SAVE
+          </button>
+          <button onclick="checkApiHealth()" class="border border-gray-300 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-50">
+            HEALTH CHECK
+          </button>
+        </div>
+        <p id="api-health-msg" class="text-xs text-gray-400"></p>
+      </div>
+
+      <!-- About -->
+      <div class="bg-eu-blue p-6 shadow-sm">
+        <div class="flex items-baseline gap-2 mb-3">
+          <span class="text-xl font-bold text-white tracking-tight">EUCOST</span>
+          <span class="text-xs font-mono text-blue-300">v0.1.0</span>
+        </div>
+        <p class="text-xs text-blue-200 mb-5 leading-relaxed">
+          The open-source Terraform cost estimator for European cloud infrastructure.<br/>
+          Transparent pricing. EU Sovereign. Zero vendor lock-in.
+        </p>
+        <div class="flex gap-3">
+          <a href="https://github.com/euroopencost/euroopencost" target="_blank"
+            class="flex items-center gap-1.5 border border-blue-400 text-white text-xs font-medium px-3 py-1.5 hover:bg-blue-800 transition-colors">
+            <i class="fa-brands fa-github text-[11px]"></i> GitHub
+          </a>
+          <a href="https://euroopencost.eu" target="_blank"
+            class="flex items-center gap-1.5 border border-blue-400 text-white text-xs font-medium px-3 py-1.5 hover:bg-blue-800 transition-colors">
+            <i class="fa-solid fa-globe text-[11px]"></i> Website
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /tab-settings -->
+
+  </main><!-- /main-content -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       RIGHT SIDEBAR (xl screens only, Dashboard tab)
+  ═══════════════════════════════════════════════════════════ -->
+  <aside id="right-sidebar" class="hidden xl:block w-[400px] flex-shrink-0 relative">
+    <div class="bg-white border border-gray-100 p-8 fixed right-0 top-0 h-full w-[400px] overflow-y-auto z-40 pt-24 pb-8 flex flex-col shadow-2xl">
+
+      <!-- Selected Node Header -->
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">SELECTED NODE</h3>
+          <h2 id="sidebar-node-name" class="text-3xl font-normal text-gray-800">CX21 Cluster</h2>
+        </div>
+        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fa-solid fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Infrastructure Origin -->
+      <div class="mb-8">
+        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">INFRASTRUCTURE ORIGIN</h3>
+        <div class="bg-gray-50 p-4 flex items-start space-x-3">
+          <i class="fa-solid fa-location-dot text-eu-blue mt-1"></i>
+          <div>
+            <div id="sidebar-location-name" class="font-medium text-gray-900 text-sm">Hetzner fsn1-dc14</div>
+            <div id="sidebar-location-city" class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">FALKENSTEIN, GERMANY</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Metadata -->
+      <div class="mb-8">
+        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">FINANCIAL METADATA</h3>
+        <div class="flex space-x-4">
+          <div class="border border-gray-200 p-4 flex-1">
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">MONTHLY COST</div>
+            <div id="sidebar-monthly" class="text-2xl text-gray-800">€14.80</div>
+          </div>
+          <div class="border border-gray-200 p-4 flex-1">
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">HOURLY RATE</div>
+            <div id="sidebar-hourly" class="text-2xl text-gray-800">€0.02</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sovereignty Audit -->
+      <div class="mb-8">
+        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">SOVEREIGNTY AUDIT</h3>
+        <div id="sidebar-cert-box" class="border border-eu-blue p-4 flex items-start space-x-3">
+          <i class="fa-solid fa-shield-halved text-eu-blue mt-1"></i>
+          <div>
+            <div id="sidebar-cert-status" class="font-bold text-gray-900 text-sm tracking-wider">CERTIFIED</div>
+            <div class="text-xs text-gray-500 mt-1">Complies with EU Data Act 2024</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node Configuration -->
+      <div class="mb-auto">
+        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">NODE CONFIGURATION</h3>
+        <ul id="sidebar-config" class="text-sm divide-y divide-gray-100">
+          <li class="py-3 flex justify-between"><span class="text-gray-500">Type</span><span class="font-medium text-gray-900">CX21</span></li>
+          <li class="py-3 flex justify-between"><span class="text-gray-500">vCPU</span><span class="font-medium text-gray-900">2 Cores</span></li>
+          <li class="py-3 flex justify-between"><span class="text-gray-500">RAM</span><span class="font-medium text-gray-900">4 GB ECC</span></li>
+          <li class="py-3 flex justify-between border-b border-gray-100"><span class="text-gray-500">Networking</span><span class="font-medium text-gray-900">20 TB Traffic</span></li>
+        </ul>
+      </div>
+
+      <!-- Action Button -->
+      <div class="mt-8">
+        <a href="audit.html" class="w-full block text-center bg-eu-blue text-white py-4 text-sm font-medium tracking-widest uppercase hover:bg-blue-900 transition-colors focus:outline-none" style="text-decoration:none;">
+          MODIFY INSTANCE
+        </a>
+      </div>
+
+    </div>
+  </aside>
+
+</div><!-- /main wrapper -->
+
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════ -->
+<script>
+// ───────────────────────────────────────────────────────────
+// SUPABASE CONFIG  ← replace with your project values
+// ───────────────────────────────────────────────────────────
+const SUPABASE_URL      = 'https://pquqtyfezwagzeujweqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdXF0eWZlendhZ3pldWp3ZXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTk5ODIsImV4cCI6MjA5MDE3NTk4Mn0.SP8ZvG64595-IflvEhZTodWVzGJYoqszfj1zlRGR66M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let authUser    = null;
+let authProfile = null;
+
+// ───────────────────────────────────────────────────────────
+// STATE
+// ───────────────────────────────────────────────────────────
+const state = {
+  apiEndpoint: localStorage.getItem('eucost_api') || 'http://localhost:8080',
+  currentTab:  'dashboard',
+  monacoLoaded: false,
+  monacoEditor: null,
+  lastAnalysis: null,
+  history:     JSON.parse(localStorage.getItem('eucost_history') || '[]'),
+};
+
+// ───────────────────────────────────────────────────────────
+// NAV / TAB SWITCHING
+// ───────────────────────────────────────────────────────────
+const TABS = ['dashboard', 'audit', 'policies', 'treasury', 'settings'];
+const PRO_TABS = ['audit', 'policies', 'treasury'];
+const NAV_TABS = ['dashboard', 'audit', 'policies', 'treasury']; // tabs in header nav
+
+function navigate(tab) {
+  if (!TABS.includes(tab)) return;
+
+  // Hide all tab panes
+  TABS.forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.classList.remove('active');
+  });
+
+  // Show target tab
+  const target = document.getElementById('tab-' + tab);
+  if (target) target.classList.add('active');
+
+  // Update nav link styles
+  NAV_TABS.forEach(t => {
+    const link = document.getElementById('nav-' + t);
+    if (link) link.classList.toggle('active', t === tab);
+  });
+
+  state.currentTab = tab;
+
+  // Show/hide sidebar — only on dashboard
+  const sidebar = document.getElementById('right-sidebar');
+  const mainEl  = document.getElementById('main-content');
+  if (tab === 'dashboard') {
+    if (sidebar) sidebar.classList.remove('xl:hidden');
+    if (mainEl)  mainEl.classList.remove('xl:pr-0-override');
+  } else {
+    if (sidebar) sidebar.classList.add('xl:hidden');
+  }
+
+  // Handle Pro gates
+  if (PRO_TABS.includes(tab)) {
+    const gate = document.getElementById(tab + '-gate');
+    const main = document.getElementById(tab + '-main');
+    if (gate && main) {
+      if (isPro()) {
+        gate.classList.add('hidden');
+        main.classList.remove('hidden');
+      } else {
+        gate.classList.remove('hidden');
+        main.classList.add('hidden');
+      }
+    }
+    if (tab === 'audit' && isPro()) initMonaco();
+    if (tab === 'treasury' && isPro()) renderReports();
+  }
+}
+
+// ───────────────────────────────────────────────────────────
+// AUTH / PRO CHECK
+// ───────────────────────────────────────────────────────────
+function isPro() {
+  return authProfile?.is_pro === true;
+}
+
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    authUser = session.user;
+    await loadProfile();
+  }
+  updateAuthUI();
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    authUser = session?.user || null;
+    if (authUser) await loadProfile();
+    else authProfile = null;
+    updateAuthUI();
+    // Re-evaluate gates on current tab
+    const PRO_TABS_CHECK = ['audit', 'policies', 'treasury'];
+    if (PRO_TABS_CHECK.includes(state.currentTab)) navigate(state.currentTab);
+  });
+}
+
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('is_pro').eq('id', authUser.id).single();
+  authProfile = data;
+}
+
+function showAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('auth-form-login').classList.toggle('hidden', !isLogin);
+  document.getElementById('auth-form-register').classList.toggle('hidden', isLogin);
+  const active = 'px-4 py-2 text-xs font-semibold text-eu-blue border-b-2 border-eu-blue -mb-px';
+  const inactive = 'px-4 py-2 text-xs font-medium text-gray-500 border-b-2 border-transparent -mb-px';
+  document.getElementById('auth-tab-login').className    = isLogin  ? active : inactive;
+  document.getElementById('auth-tab-register').className = !isLogin ? active : inactive;
+  clearAuthMessages();
+}
+
+function clearAuthMessages() {
+  const err = document.getElementById('auth-error-msg');
+  const ok  = document.getElementById('auth-success-msg');
+  if (err) { err.classList.add('hidden'); err.textContent = ''; }
+  if (ok)  { ok.classList.add('hidden');  ok.textContent = ''; }
+}
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error-msg');
+  const ok = document.getElementById('auth-success-msg');
+  if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+  if (ok) ok.classList.add('hidden');
+}
+function showAuthSuccess(msg) {
+  const el = document.getElementById('auth-success-msg');
+  const err = document.getElementById('auth-error-msg');
+  if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+  if (err) err.classList.add('hidden');
+}
+
+async function handleSignIn() {
+  const email    = document.getElementById('auth-email')?.value?.trim();
+  const password = document.getElementById('auth-password')?.value;
+  if (!email || !password) { showAuthError('Please enter email and password.'); return; }
+  const btn = document.querySelector('#auth-form-login button');
+  if (btn) btn.textContent = 'SIGNING IN...';
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    showAuthSuccess('Signed in!');
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+  } catch (err) {
+    showAuthError(err.message);
+  } finally {
+    if (btn) btn.textContent = 'SIGN IN';
+  }
+}
+
+async function handleSignUp() {
+  const email    = document.getElementById('auth-reg-email')?.value?.trim();
+  const password = document.getElementById('auth-reg-password')?.value;
+  if (!email || !password) { showAuthError('Please enter email and password.'); return; }
+  if (password.length < 8) { showAuthError('Password must be at least 8 characters.'); return; }
+  const btn = document.querySelector('#auth-form-register button');
+  if (btn) btn.textContent = 'CREATING...';
+  try {
+    const { error } = await sb.auth.signUp({ email, password });
+    if (error) throw error;
+    showAuthSuccess('Account created! Please check your email to verify.');
+    document.getElementById('auth-reg-email').value = '';
+    document.getElementById('auth-reg-password').value = '';
+  } catch (err) {
+    showAuthError(err.message);
+  } finally {
+    if (btn) btn.textContent = 'CREATE ACCOUNT';
+  }
+}
+
+async function handleSignOut() {
+  await sb.auth.signOut();
+  showToast('Signed out.');
+}
+
+function updateAuthUI() {
+  const loggedOut = document.getElementById('auth-logged-out');
+  const loggedIn  = document.getElementById('auth-logged-in');
+  const headerBadge = document.getElementById('header-pro-badge');
+
+  if (authUser) {
+    if (loggedOut) loggedOut.classList.add('hidden');
+    if (loggedIn)  loggedIn.classList.remove('hidden');
+
+    const emailDisplay = document.getElementById('auth-email-display');
+    const avatar       = document.getElementById('auth-avatar');
+    const tierDisplay  = document.getElementById('auth-tier-display');
+    const proBadge     = document.getElementById('auth-pro-badge');
+    const pro          = isPro();
+
+    if (emailDisplay) emailDisplay.textContent = authUser.email;
+    if (avatar)       avatar.textContent       = authUser.email[0].toUpperCase();
+    if (tierDisplay)  tierDisplay.textContent  = pro ? 'Pro — Premium access active' : 'Community — contact admin for Pro';
+    if (proBadge)     proBadge.classList.toggle('hidden', !pro);
+    if (headerBadge)  headerBadge.classList.toggle('hidden', !pro);
+
+    ['audit', 'policies', 'treasury'].forEach(t => {
+      const lock = document.getElementById('nav-' + t + '-lock');
+      if (lock) lock.style.display = pro ? 'none' : '';
+    });
+  } else {
+    if (loggedOut) loggedOut.classList.remove('hidden');
+    if (loggedIn)  loggedIn.classList.add('hidden');
+    if (headerBadge) headerBadge.classList.add('hidden');
+    ['audit', 'policies', 'treasury'].forEach(t => {
+      const lock = document.getElementById('nav-' + t + '-lock');
+      if (lock) lock.style.display = '';
+    });
+  }
+}
+
+// ───────────────────────────────────────────────────────────
+// API CALL
+// ───────────────────────────────────────────────────────────
+async function callAnalyzeAPI(jsonContent) {
+  try {
+    const resp = await fetch(state.apiEndpoint + '/api/v1/analyze', {
+      method: 'POST',
+      body: jsonContent,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + state.token
+      }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    state.lastAnalysis = data;
+    updateDashboardWithData(data);
+    saveToHistory(data, jsonContent);
+    showToast('Analysis complete — ' + (data.resources || []).length + ' resources');
+    return data;
+  } catch (err) {
+    showToast('Error: ' + err.message + '. Is eucost serve running?', true);
+    return null;
+  }
+}
+
+// ───────────────────────────────────────────────────────────
+// DASHBOARD UPDATE
+// ───────────────────────────────────────────────────────────
+function updateDashboardWithData(data) {
+  const score   = data.score || 0;
+  const monthly = data.totals ? data.totals.monthly : (data.monthly || 0);
+  const resources = data.resources || [];
+  const alerts  = data.alerts || [];
+
+  // Sovereign Treasury widget
+  const e = id => document.getElementById(id);
+  if (e('sovtr-monthly'))   e('sovtr-monthly').textContent  = '€' + fmt(monthly);
+  if (e('sovtr-score'))     e('sovtr-score').textContent    = score + '%';
+  if (e('sovtr-resources')) e('sovtr-resources').textContent = resources.length;
+  if (e('sovtr-alerts'))    e('sovtr-alerts').textContent   = alerts.length;
+
+  // If Pro — show the real content
+  if (isPro()) {
+    if (e('sovtr-gate'))  e('sovtr-gate').classList.add('hidden');
+    if (e('sovtr-blur'))  e('sovtr-blur').classList.add('hidden');
+    if (e('sovtr-main'))  e('sovtr-main').classList.remove('hidden');
+  }
+
+  // Terminal
+  if (e('terminal-result')) {
+    if (resources.length > 0) {
+      const lines = resources.slice(0, 4).map(r =>
+        `<div class="mb-0.5 text-eu-terminal-green">&gt; ${escHtml(r.name)}: <span class="text-white">€${r.monthly_price}/mo</span></div>`
+      ).join('');
+      e('terminal-result').innerHTML = lines +
+        `<div class="mt-1">+${resources.length} resources · €${fmt(monthly)}/month · ${score}% sovereign</div>`;
+    }
+  }
+
+  // Update provider prices from API response
+  if (resources.length > 0) {
+    const byProvider = {};
+    resources.forEach(r => {
+      const p = r.provider || 'unknown';
+      byProvider[p] = (byProvider[p] || 0) + parseFloat(r.monthly_price || 0);
+    });
+    if (byProvider.hetzner && e('hetzner-price')) e('hetzner-price').textContent = '€' + fmt(byProvider.hetzner);
+    if (byProvider.otc     && e('otc-price'))     e('otc-price').textContent     = '€' + fmt(byProvider.otc);
+    if (byProvider.ionos   && e('ionos-price'))   e('ionos-price').textContent   = '€' + fmt(byProvider.ionos);
+    if (byProvider.stackit && e('stackit-price')) e('stackit-price').textContent = '€' + fmt(byProvider.stackit);
+  }
+
+  // Sidebar: show first resource
+  if (resources.length > 0) updateSidebar(resources[0]);
+
+  // Policies breakdown
+  updatePoliciesBreakdown(resources, score);
+}
+
+function updateSidebar(resource) {
+  if (!resource) return;
+  const e = id => document.getElementById(id);
+  const name = resource.name || resource.display_type || 'Unknown';
+
+  if (e('sidebar-node-name')) e('sidebar-node-name').textContent = name;
+
+  // Location mapping
+  const loc = providerToLocation(resource.provider || '');
+  if (e('sidebar-location-name')) e('sidebar-location-name').textContent = loc.name;
+  if (e('sidebar-location-city')) e('sidebar-location-city').textContent = loc.city;
+
+  // Costs
+  if (e('sidebar-monthly')) e('sidebar-monthly').textContent = '€' + (resource.monthly_price || '0.00');
+  if (e('sidebar-hourly'))  e('sidebar-hourly').textContent  = '€' + (resource.hourly_price  || '0.0000');
+
+  // Cert status
+  const eu = isEuProvider(resource.provider || '');
+  if (e('sidebar-cert-status')) e('sidebar-cert-status').textContent = eu ? 'CERTIFIED' : 'REVIEW NEEDED';
+  if (e('sidebar-cert-box')) {
+    e('sidebar-cert-box').className = eu
+      ? 'border border-eu-blue p-4 flex items-start space-x-3'
+      : 'border border-yellow-400 p-4 flex items-start space-x-3';
+  }
+
+  // Config: derive from display_type
+  const type = resource.display_type || resource.type || '—';
+  if (e('sidebar-config')) {
+    e('sidebar-config').innerHTML = `
+      <li class="py-3 flex justify-between"><span class="text-gray-500">Type</span><span class="font-medium text-gray-900">${escHtml(type)}</span></li>
+      <li class="py-3 flex justify-between"><span class="text-gray-500">Provider</span><span class="font-medium text-gray-900">${escHtml(loc.name)}</span></li>
+      <li class="py-3 flex justify-between"><span class="text-gray-500">Hourly</span><span class="font-medium text-gray-900">€${resource.hourly_price || '0.0000'}</span></li>
+      <li class="py-3 flex justify-between border-b border-gray-100"><span class="text-gray-500">Monthly</span><span class="font-medium text-gray-900">€${resource.monthly_price || '0.00'}</span></li>
+    `;
+  }
+}
+
+function selectProvider(provider) {
+  // Click on provider card → update sidebar with demo data for that provider
+  const demos = {
+    hetzner: { name: 'Hetzner CX21', provider: 'hetzner', display_type: 'hcloud_server CX21', monthly_price: '14.80', hourly_price: '0.0200' },
+    otc:     { name: 'OTC ECS s3.medium.4', provider: 'otc', display_type: 'ECS s3.medium.4', monthly_price: '38.09', hourly_price: '0.0529' },
+    ionos:   { name: 'IONOS Server', provider: 'ionos', display_type: 'ionoscloud_server', monthly_price: '10.30', hourly_price: '0.0143' },
+    stackit: { name: 'STACKIT Server', provider: 'stackit', display_type: 'stackit_server', monthly_price: '1.10', hourly_price: '0.0015' },
+  };
+  if (demos[provider]) updateSidebar(demos[provider]);
+}
+
+function updatePoliciesBreakdown(resources, score) {
+  const el = document.getElementById('policies-score-breakdown');
+  if (!el || !resources.length) return;
+  const rows = resources.map(r => {
+    const eu = isEuProvider(r.provider || '');
+    return `<div class="py-2.5 border-b border-gray-100 flex items-center justify-between text-sm">
+      <div><span class="font-medium text-gray-900">${escHtml(r.name)}</span> <span class="text-xs text-gray-400">${escHtml(r.display_type || '')}</span></div>
+      <span class="${eu ? 'text-green-600' : 'text-yellow-600'} font-bold text-xs">${eu ? 'EU ✓' : 'REVIEW'}</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="mb-3 text-sm font-bold text-eu-blue">Overall Score: ${score}%</div>${rows}`;
+}
+
+// ───────────────────────────────────────────────────────────
+// FILE UPLOAD — DASHBOARD
+// ───────────────────────────────────────────────────────────
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    showToast('Analyzing ' + file.name + '...');
+    await callAnalyzeAPI(e.target.result);
+  };
+  reader.readAsText(file);
+}
+
+// ───────────────────────────────────────────────────────────
+// MONACO EDITOR
+// ───────────────────────────────────────────────────────────
+function initMonaco() {
+  if (state.monacoLoaded) return;
+  state.monacoLoaded = true;
+
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js';
+  script.onload = () => {
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+    require(['vs/editor/editor.main'], () => {
+      state.monacoEditor = monaco.editor.create(
+        document.getElementById('monaco-container'), {
+          value: DEFAULT_PLAN_JSON,
+          language: 'json',
+          theme: 'vs-dark',
+          fontSize: 13,
+          lineHeight: 20,
+          minimap: { enabled: false },
+          automaticLayout: true,
+          wordWrap: 'on',
+          scrollBeyondLastLine: false,
+          renderLineHighlight: 'all',
+          fontFamily: "'Fira Code', 'Courier New', monospace",
+          fontLigatures: true,
+        }
+      );
+      state.monacoEditor.onDidChangeModelContent(() => {
+        try {
+          const obj = JSON.parse(state.monacoEditor.getValue());
+          const count = countResources(obj);
+          const el = document.getElementById('ide-resource-count');
+          if (el) el.textContent = count + ' resources detected';
+        } catch (e) {
+          const el = document.getElementById('ide-resource-count');
+          if (el) el.textContent = 'invalid JSON';
+        }
+      });
+      const statusEl = document.getElementById('ide-status-msg');
+      if (statusEl) statusEl.textContent = 'Editor ready';
+    });
+  };
+  script.onerror = () => {
+    const container = document.getElementById('monaco-container');
+    if (container) {
+      container.innerHTML = '<textarea id="monaco-fallback" style="width:100%;height:100%;padding:16px;background:#1e1e1e;color:#d4d4d4;font-family:Consolas,monospace;font-size:13px;border:none;outline:none;resize:none">' +
+        escHtml(DEFAULT_PLAN_JSON) + '</textarea>';
+    }
+    state.monacoEditor = { getValue: () => {
+      const fb = document.getElementById('monaco-fallback');
+      return fb ? fb.value : DEFAULT_PLAN_JSON;
+    }};
+    const statusEl = document.getElementById('ide-status-msg');
+    if (statusEl) statusEl.textContent = 'Fallback editor (offline)';
+  };
+  document.head.appendChild(script);
+}
+
+function handleIdeFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    if (state.monacoEditor && state.monacoEditor.setValue) {
+      state.monacoEditor.setValue(e.target.result);
+    }
+    const fn  = document.getElementById('ide-filename');
+    const fn2 = document.getElementById('ide-explorer-filename');
+    if (fn)  fn.textContent  = file.name;
+    if (fn2) fn2.textContent = file.name;
+    const statusEl = document.getElementById('ide-status-msg');
+    if (statusEl) statusEl.textContent = file.name + ' loaded';
+    showToast('Loaded ' + file.name);
+  };
+  reader.readAsText(file);
+}
+
+async function runAnalysis() {
+  if (!isPro()) { navigate('settings'); return; }
+  const statusEl = document.getElementById('ide-status-msg');
+  const analysisEl = document.getElementById('ide-analysis-status');
+  if (statusEl)   statusEl.textContent   = 'Analyzing...';
+  if (analysisEl) analysisEl.textContent = '⏳ Calling /api/v1/analyze...';
+
+  const jsonContent = state.monacoEditor ? state.monacoEditor.getValue() : '';
+  const data = await callAnalyzeAPI(jsonContent);
+
+  if (!data) {
+    if (statusEl)   statusEl.textContent   = 'Error — check toast';
+    if (analysisEl) analysisEl.textContent = '❌ Request failed';
+    return;
+  }
+
+  const score   = data.score || 0;
+  const monthly = data.totals ? data.totals.monthly : 0;
+
+  const scoreEl = document.getElementById('ide-score-text');
+  if (scoreEl) scoreEl.textContent = score + '%';
+
+  const costEl = document.getElementById('ide-monthly-cost');
+  if (costEl) costEl.textContent = '€ ' + fmt(monthly);
+
+  if (statusEl)   statusEl.textContent   = 'Analysis complete';
+  if (analysisEl) analysisEl.textContent = '✅ Done — ' + (data.resources || []).length + ' resources';
+
+  const alerts = data.alerts || [];
+  const alertsEl = document.getElementById('ide-alerts-count');
+  if (alertsEl) {
+    alertsEl.textContent = alerts.length === 0
+      ? 'Alerts: 0'
+      : '⚠ Alerts: ' + alerts.length;
+  }
+
+  renderIdeCostPanel(data);
+}
+
+function renderIdeCostPanel(data) {
+  const resources = data.resources || [];
+  const total     = data.totals   || {};
+  const alerts    = data.alerts   || [];
+  const el = document.getElementById('ide-cost-panel');
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="mb-4">
+      <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Monthly Total</p>
+      <p class="text-2xl font-bold text-eu-blue tabular-nums">€ ${fmt(total.monthly || 0)}</p>
+      <p class="text-[10px] text-gray-400">€ ${fmt4(total.hourly || 0)} / hour</p>
+    </div>
+    <div class="mb-4">
+      <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Sovereign Score</p>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 h-1.5 bg-gray-100 overflow-hidden">
+          <div class="h-full bg-green-500 transition-all duration-500" style="width:${data.score || 0}%"></div>
+        </div>
+        <span class="text-xs font-bold text-green-600">${data.score || 0}%</span>
+      </div>
+    </div>
+    ${alerts.length > 0 ? `<div class="mb-4 bg-red-50 border border-red-200 p-3 space-y-1">${alerts.map(a => `<p class="text-[11px] text-red-600">⚠ ${escHtml(a)}</p>`).join('')}</div>` : ''}
+    <div>
+      <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Resources</p>
+      <div class="space-y-2">${resources.map(r => `
+        <div class="bg-gray-50 p-2 border border-gray-100">
+          <div class="flex justify-between items-start">
+            <p class="text-[11px] font-semibold text-eu-blue leading-tight flex-1 min-w-0 truncate pr-1">${escHtml(r.name)}</p>
+            <p class="text-[11px] font-bold text-eu-blue tabular-nums flex-shrink-0">€${r.monthly_price || '0.00'}</p>
+          </div>
+          <p class="text-[10px] text-gray-400 mt-0.5">${escHtml(r.display_type || r.type || '')}</p>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function downloadIdeResult() {
+  if (!state.lastAnalysis) { showToast('Run analysis first', true); return; }
+  downloadFile('eucost-analysis.json', JSON.stringify(state.lastAnalysis, null, 2), 'application/json');
+  showToast('Downloading JSON report...');
+}
+
+// ───────────────────────────────────────────────────────────
+// REPORTS / TREASURY HISTORY
+// ───────────────────────────────────────────────────────────
+function saveToHistory(data, raw) {
+  const entry = {
+    id:        Date.now(),
+    date:      new Date().toLocaleString('de-DE'),
+    resources: (data.resources || []).length,
+    monthly:   data.totals ? data.totals.monthly : 0,
+    score:     data.score || 0,
+    data:      data
+  };
+  state.history.unshift(entry);
+  if (state.history.length > 20) state.history = state.history.slice(0, 20);
+  localStorage.setItem('eucost_history', JSON.stringify(state.history));
+}
+
+function renderReports() {
+  const el = document.getElementById('reports-list');
+  if (!el) return;
+  if (state.history.length === 0) {
+    el.innerHTML = `
+      <div class="bg-white border border-eu-border p-10 text-center shadow-sm">
+        <i class="fa-solid fa-folder-open text-gray-300 text-3xl mb-3"></i>
+        <p class="text-xs text-gray-400">No analyses yet.<br/>Run your first plan in the <a onclick="navigate('audit')" class="text-eu-blue cursor-pointer underline">Audit Engine</a>.</p>
+      </div>`;
+    return;
+  }
+  el.innerHTML = state.history.map((entry, i) => `
+    <div class="bg-white border border-eu-border p-5 shadow-sm">
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <p class="text-[10px] text-gray-400 uppercase tracking-wider">${entry.date}</p>
+          <p class="font-semibold text-eu-blue text-sm mt-0.5">${entry.resources} resources · €${fmt(entry.monthly)}/month</p>
+        </div>
+        <span class="text-xs font-bold px-2.5 py-1 ${entry.score >= 90 ? 'bg-green-50 text-green-700' : entry.score >= 60 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-600'}">${entry.score}% sovereign</span>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="downloadReportHTML(${i})" class="flex items-center gap-1.5 bg-eu-blue text-white text-xs font-medium px-3 py-1.5 hover:bg-blue-900 transition-colors">
+          <i class="fa-solid fa-file-code text-[10px]"></i> HTML
+        </button>
+        <button onclick="downloadReportJSON(${i})" class="flex items-center gap-1.5 border border-eu-border text-gray-600 text-xs font-medium px-3 py-1.5 hover:bg-gray-50">
+          <i class="fa-solid fa-brackets-curly text-[10px]"></i> JSON
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function downloadReportJSON(i) {
+  const entry = state.history[i];
+  downloadFile('eucost-report-' + entry.id + '.json', JSON.stringify(entry.data, null, 2), 'application/json');
+  showToast('JSON report downloaded.');
+}
+
+function downloadReportHTML(i) {
+  const entry = state.history[i];
+  downloadFile('eucost-report-' + entry.id + '.html', generateSimpleHTMLReport(entry), 'text/html');
+  showToast('HTML report downloaded.');
+}
+
+function clearHistory() {
+  if (!confirm('Clear all analysis history?')) return;
+  state.history = [];
+  localStorage.removeItem('eucost_history');
+  renderReports();
+  showToast('History cleared.');
+}
+
+// ───────────────────────────────────────────────────────────
+// SETTINGS
+// ───────────────────────────────────────────────────────────
+// saveToken / removeToken removed — replaced by Supabase auth
+
+function saveApiEndpoint() {
+  const val = document.getElementById('api-endpoint-input');
+  state.apiEndpoint = (val ? val.value.trim() : '') || 'http://localhost:8080';
+  localStorage.setItem('eucost_api', state.apiEndpoint);
+  showToast('API endpoint saved.');
+}
+
+async function checkApiHealth() {
+  const msg = document.getElementById('api-health-msg');
+  const dot = document.getElementById('api-status-dot');
+  const headerDot = document.getElementById('header-server-dot');
+  if (msg) msg.textContent = 'Checking...';
+  try {
+    const r = await fetch(state.apiEndpoint + '/api/v1/health', {
+      signal: AbortSignal.timeout(5000)
+    });
+    if (r.ok) {
+      if (msg) { msg.textContent = '✓ Server is running'; msg.className = 'text-xs text-green-600 font-bold'; }
+      if (dot) dot.className = 'inline-block w-2 h-2 rounded-full bg-green-500 ml-2 align-middle';
+      if (headerDot) headerDot.className = 'w-2 h-2 rounded-full bg-green-500';
+    } else {
+      throw new Error('HTTP ' + r.status);
+    }
+  } catch (e) {
+    if (msg) { msg.textContent = '✗ Server not reachable — run: eucost serve'; msg.className = 'text-xs text-red-500 font-bold'; }
+    if (dot) dot.className = 'inline-block w-2 h-2 rounded-full bg-red-400 ml-2 align-middle';
+    if (headerDot) headerDot.className = 'w-2 h-2 rounded-full bg-red-400';
+  }
+}
+
+// updateSettingsUI removed — replaced by updateAuthUI() (Supabase)
+
+// ───────────────────────────────────────────────────────────
+// AUDIT CERTIFICATE
+// ───────────────────────────────────────────────────────────
+function downloadAuditDoc() {
+  downloadFile('eucost-sovereignty-certificate.html', generateCertificate(), 'text/html');
+  showToast('Sovereignty certificate downloaded.');
+}
+
+function generateCertificate() {
+  const score = state.lastAnalysis ? (state.lastAnalysis.score || '—') : '—';
+  const now   = new Date().toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' });
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>EuroOpenCost Sovereignty Certificate</title>
+<style>
+  body{font-family:Inter,sans-serif;max-width:700px;margin:60px auto;padding:40px;border:3px solid #0a1945}
+  h1{color:#0a1945;font-size:28px;font-weight:400}
+  .score{font-size:72px;font-weight:800;color:#10b981}
+  table{width:100%;border-collapse:collapse;margin:20px 0}
+  td{padding:12px;border-bottom:1px solid #e5e7eb}
+  tr:nth-child(odd) td{background:#f9fafb}
+  td:first-child{font-weight:600;color:#374151}
+</style></head><body>
+<div style="text-align:center;margin-bottom:40px">
+  <p style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:3px">EuroOpenCost · Sovereign Cloud Intelligence</p>
+  <h1>Sovereignty Certificate</h1>
+  <div class="score">${score}%</div>
+  <p style="color:#10b981;font-weight:700;text-transform:uppercase;font-size:13px;letter-spacing:2px">EU Compliant Infrastructure</p>
+</div>
+<p>This certificate confirms that the analysed cloud infrastructure meets the <strong>EuroOpenCost Sovereign Standard</strong>.</p>
+<p>All detected cloud providers are legally owned and operated within the European Union, ensuring compliance with <strong>GDPR</strong>, <strong>NIS2 Directive</strong>, and digital sovereignty requirements.</p>
+<table>
+  <tr><td>Sovereign Score</td><td>${score}% — ${parseInt(score) >= 90 ? 'EXCELLENT' : parseInt(score) >= 60 ? 'GOOD' : 'NEEDS REVIEW'}</td></tr>
+  <tr><td>Jurisdiction</td><td>European Union</td></tr>
+  <tr><td>GDPR Compliance</td><td>✓ Confirmed</td></tr>
+  <tr><td>NIS2 Directive</td><td>✓ Compliant Providers</td></tr>
+  <tr><td>US Cloud Act Exposure</td><td>None</td></tr>
+  <tr><td>Generated</td><td>${now}</td></tr>
+</table>
+<p style="color:#9ca3af;font-size:11px;margin-top:40px">Generated by EuroOpenCost v0.1.0 · euroopencost.eu · Prices are estimates based on public list prices.</p>
+</body></html>`;
+}
+
+// ───────────────────────────────────────────────────────────
+// HELPERS
+// ───────────────────────────────────────────────────────────
+function id(s) { return document.getElementById(s); }
+
+function fmt(n) {
+  return Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmt4(n) {
+  return Number(n).toFixed(4);
+}
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function countResources(obj) {
+  try {
+    const planned = obj.planned_values?.root_module?.resources || [];
+    const changes = obj.resource_changes || [];
+    return Math.max(planned.length, changes.length);
+  } catch (e) { return 0; }
+}
+function downloadFile(name, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function showToast(msg, isError) {
+  const toast    = document.getElementById('toast');
+  const toastMsg = document.getElementById('toast-msg');
+  if (!toast || !toastMsg) return;
+  toastMsg.textContent = msg;
+  toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none ' +
+    (isError ? 'bg-red-600' : 'bg-eu-blue');
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+}
+
+function providerToLocation(provider) {
+  const map = {
+    hetzner: { name: 'Hetzner fsn1-dc14', city: 'FALKENSTEIN, GERMANY' },
+    otc:     { name: 'T-Systems OTC', city: 'FRANKFURT, GERMANY' },
+    stackit: { name: 'STACKIT', city: 'NÜRNBERG, GERMANY' },
+    ionos:   { name: 'IONOS Cloud', city: 'KARLSRUHE, GERMANY' },
+  };
+  return map[provider] || { name: provider || 'Unknown', city: 'EUROPE' };
+}
+
+function isEuProvider(provider) {
+  return ['hetzner','otc','stackit','ionos','ovh','scaleway','exoscale','upcloud'].includes(
+    String(provider).toLowerCase()
+  );
+}
+
+function generateSimpleHTMLReport(entry) {
+  const d = entry.data;
+  const rows = (d.resources || []).map(r =>
+    `<tr><td>${escHtml(r.name)}</td><td>${escHtml(r.display_type||r.type||'')}</td><td style="text-align:right">€ ${r.monthly_price}</td></tr>`
+  ).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>eucost Report</title>
+<style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:20px}
+table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #e5e7eb}
+th{background:#f3f4f6;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+h1{color:#0a1945} .score{color:#10b981;font-size:48px;font-weight:800}</style></head>
+<body><h1>EuroOpenCost Report</h1><p style="color:#6b7280">${entry.date}</p>
+<div class="score">${entry.score}%</div><p style="color:#10b981;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:12px">Sovereign Score</p>
+<h2>Summary</h2><p>Resources: ${entry.resources} &nbsp;·&nbsp; Monthly: €${fmt(entry.monthly)}</p>
+<h2>Resource Inventory</h2>
+<table><thead><tr><th>Resource</th><th>Type</th><th style="text-align:right">€/month</th></tr></thead>
+<tbody>${rows}</tbody></table>
+<p style="font-size:11px;color:#9ca3af;margin-top:40px">Generated by EuroOpenCost v0.1.0</p></body></html>`;
+}
+
+// ───────────────────────────────────────────────────────────
+// DEFAULT TERRAFORM JSON (IDE example)
+// ───────────────────────────────────────────────────────────
+const DEFAULT_PLAN_JSON = `{
+  "format_version": "1.0",
+  "terraform_version": "1.6.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "opentelekomcloud_compute_instance_v2.web",
+          "type": "opentelekomcloud_compute_instance_v2",
+          "name": "web-server",
+          "values": { "flavor_name": "s3.large.2" }
+        },
+        {
+          "address": "opentelekomcloud_blockstorage_volume_v2.boot",
+          "type": "opentelekomcloud_blockstorage_volume_v2",
+          "name": "web-server-boot",
+          "values": { "volume_type": "SSD", "size": 100 }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "opentelekomcloud_compute_instance_v2.web",
+      "type": "opentelekomcloud_compute_instance_v2",
+      "name": "web-server",
+      "change": { "actions": ["create"], "after": { "flavor_name": "s3.large.2" } }
+    },
+    {
+      "address": "opentelekomcloud_blockstorage_volume_v2.boot",
+      "type": "opentelekomcloud_blockstorage_volume_v2",
+      "name": "web-server-boot",
+      "change": { "actions": ["create"], "after": { "volume_type": "SSD", "size": 100 } }
+    }
+  ]
+}`;
+
+// ───────────────────────────────────────────────────────────
+// INIT
+// ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  // Restore API endpoint in settings input
+  const apiInput = document.getElementById('api-endpoint-input');
+  if (apiInput) apiInput.value = state.apiEndpoint;
+
+  // Init Supabase auth
+  initAuth();
+
+  // Auto-check server health
+  checkApiHealth();
+
+  // Hash routing — e.g. index.html#settings navigates to that tab
+  const hash = location.hash.replace('#','');
+  if (['settings'].includes(hash)) navigate(hash);
+
+  // Drag & drop on main
+  const mainEl = document.getElementById('main-content');
+  if (mainEl) {
+    mainEl.addEventListener('dragover', e => { e.preventDefault(); });
+    mainEl.addEventListener('drop', e => {
+      e.preventDefault();
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.name.endsWith('.json')) {
+        showToast('Loading ' + file.name + '...');
+        const reader = new FileReader();
+        reader.onload = async ev => {
+          showToast('Analyzing ' + file.name + '...');
+          await callAnalyzeAPI(ev.target.result);
+        };
+        reader.readAsText(file);
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>

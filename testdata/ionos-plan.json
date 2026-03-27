@@ -1,0 +1,172 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "ionoscloud_datacenter.main",
+          "mode": "managed",
+          "type": "ionoscloud_datacenter",
+          "name": "main",
+          "provider_name": "registry.terraform.io/ionos-cloud/ionoscloud",
+          "schema_version": 0,
+          "values": {
+            "name": "otc-cost-test-dc",
+            "location": "de/fra",
+            "description": null,
+            "sec_auth_protection": false,
+            "version": null,
+            "features": null,
+            "ipv6_cidr_block": null,
+            "cpu_architecture": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "ionoscloud_lan.main",
+          "mode": "managed",
+          "type": "ionoscloud_lan",
+          "name": "main",
+          "provider_name": "registry.terraform.io/ionos-cloud/ionoscloud",
+          "schema_version": 0,
+          "values": {
+            "datacenter_id": "00000000-0000-0000-0000-000000000001",
+            "name": "otc-cost-test-lan",
+            "public": false,
+            "pcc": null,
+            "ipv6_cidr_block": null,
+            "location": null,
+            "ipv4_cidr_block": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "ionoscloud_server.main",
+          "mode": "managed",
+          "type": "ionoscloud_server",
+          "name": "main",
+          "provider_name": "registry.terraform.io/ionos-cloud/ionoscloud",
+          "schema_version": 0,
+          "values": {
+            "datacenter_id": "00000000-0000-0000-0000-000000000001",
+            "name": "otc-cost-test-server",
+            "cores": 4,
+            "ram": 8192,
+            "cpu_family": "INTEL_SKYLAKE",
+            "availability_zone": "AUTO",
+            "type": "ENTERPRISE",
+            "vm_state": "RUNNING",
+            "image_name": null,
+            "image_password": null,
+            "boot_cdrom": null,
+            "boot_image": null,
+            "template_uuid": null,
+            "hostname": null,
+            "allow_replace": false,
+            "nic_multi_queue": false,
+            "ssh_keys": [],
+            "ssh_key_path": [],
+            "security_groups_ids": [],
+            "firewallrule_ids": [],
+            "boot_volume": null,
+            "firewallrule_id": null,
+            "inline_volume_ids": null,
+            "primary_ip": null,
+            "primary_nic": null,
+            "location": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "ionoscloud_volume.data",
+          "mode": "managed",
+          "type": "ionoscloud_volume",
+          "name": "data",
+          "provider_name": "registry.terraform.io/ionos-cloud/ionoscloud",
+          "schema_version": 0,
+          "values": {
+            "datacenter_id": "00000000-0000-0000-0000-000000000001",
+            "server_id": "00000000-0000-0000-0000-000000000002",
+            "name": "otc-cost-test-data",
+            "size": 50,
+            "disk_type": "SSD Standard",
+            "bus": "VIRTIO",
+            "availability_zone": "AUTO",
+            "licence_type": null,
+            "image_name": null,
+            "image_password": null,
+            "user_data": null,
+            "backup_unit_id": null,
+            "require_legacy_bios": null,
+            "expose_serial": false,
+            "ssh_keys": [],
+            "ssh_key_path": [],
+            "cpu_hot_plug": null,
+            "ram_hot_plug": null,
+            "nic_hot_plug": null,
+            "nic_hot_unplug": null,
+            "disc_virtio_hot_plug": null,
+            "disc_virtio_hot_unplug": null,
+            "device_number": null,
+            "pci_slot": null,
+            "boot_server": null,
+            "image": null,
+            "image_id": null,
+            "sshkey": null,
+            "location": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "ionoscloud_nic.main",
+          "mode": "managed",
+          "type": "ionoscloud_nic",
+          "name": "main",
+          "provider_name": "registry.terraform.io/ionos-cloud/ionoscloud",
+          "schema_version": 0,
+          "values": {
+            "datacenter_id": "00000000-0000-0000-0000-000000000001",
+            "server_id": "00000000-0000-0000-0000-000000000002",
+            "lan": 1,
+            "name": "otc-cost-test-nic",
+            "dhcp": true,
+            "dhcpv6": null,
+            "firewall_active": false,
+            "firewall_type": "INGRESS",
+            "ips": null,
+            "ipv6_cidr_block": null,
+            "ipv6_ips": null,
+            "mac": null,
+            "pci_slot": null,
+            "device_number": null,
+            "security_groups_ids": [],
+            "location": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "ionoscloud_ipblock.main",
+          "mode": "managed",
+          "type": "ionoscloud_ipblock",
+          "name": "main",
+          "provider_name": "registry.terraform.io/ionos-cloud/ionoscloud",
+          "schema_version": 0,
+          "values": {
+            "name": "otc-cost-test-ip",
+            "location": "de/fra",
+            "size": 1,
+            "ips": null,
+            "id": null
+          },
+          "sensitive_values": {}
+        }
+      ]
+    }
+  }
+}

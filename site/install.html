@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="EuroOpenCost — The open-source cost estimator for European Cloud infrastructure. Calculate Terraform plan costs for OTC, Hetzner, STACKIT, IONOS and more."/>
+<title>EuroOpenCost | Install</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'eu-blue':         '#0a1945',
+          'eu-gray':         '#6b7280',
+          'eu-bg':           '#f3f4f6',
+          'eu-border':       '#e5e7eb',
+        },
+        fontFamily: {
+          sans: ['Inter','ui-sans-serif','system-ui','-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif'],
+          mono: ['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','Liberation Mono','Courier New','monospace'],
+        },
+      }
+    }
+  }
+</script>
+<style>
+  .grid-bg {
+    background-color: #f8f9fa;
+    background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+                      linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  .nav-link {
+    border-bottom: 2px solid transparent;
+    color: #6b7280;
+    display: inline-flex; align-items: center;
+    padding: 4px 4px 4px;
+    font-size: 0.875rem; font-weight: 500;
+    text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+    white-space: nowrap;
+  }
+  .nav-link:hover { color: #374151; border-color: #d1d5db; }
+  .nav-link.active { color: #111827; border-color: #0a1930; font-weight: 600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+  .code-block { background: #0f172a; color: #e2e8f0; font-family: ui-monospace, monospace; border-radius: 0.75rem; padding: 1.25rem; font-size: 0.875rem; line-height: 1.6; }
+  .code-comment { color: #64748b; }
+  .code-cmd { color: #7dd3fc; }
+  .code-arg { color: #86efac; }
+  .code-out { color: #e2e8f0; }
+  .code-highlight { color: #fde68a; }
+  .compliance-ribbon { width: 4px; position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px 0 0 4px; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body class="text-gray-800 font-sans antialiased overflow-x-hidden min-h-screen grid-bg bg-[#f8f9fa]">
+
+<!-- HEADER -->
+<header class="bg-white/90 backdrop-blur-sm border-b border-eu-border sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none no-underline" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="audit.html" class="nav-link">
+            Audit Engine
+            <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="policies.html" class="nav-link">
+            Sovereign Policies
+            <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="treasury.html" class="nav-link">
+            Treasury
+            <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link active">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <a href="https://github.com/euroopencost/euroopencost" target="_blank"
+           class="ml-2 hidden md:flex items-center gap-1.5 bg-eu-blue text-white text-xs font-semibold px-3 py-1.5 hover:opacity-90 transition-opacity" style="text-decoration:none;">
+          <i class="fa-brands fa-github text-sm"></i> GitHub
+        </a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="audit.html" class="nav-link-mobile">Audit Engine <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="policies.html" class="nav-link-mobile">Sovereign Policies <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="treasury.html" class="nav-link-mobile">Treasury <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile active">Install</a>
+    </nav>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+  <!-- Hero -->
+  <section class="mb-16">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div class="space-y-6">
+        <div class="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 text-xs font-bold uppercase tracking-widest">
+          <i class="fa-solid fa-shield-halved text-[12px]"></i>
+          100% EU Sovereign
+        </div>
+        <h1 class="text-5xl md:text-6xl font-bold text-eu-blue tracking-tight leading-tight">
+          Truly EU<br/>Sovereign<br/>Cloud Costs.
+        </h1>
+        <p class="text-gray-500 text-lg leading-relaxed max-w-md">
+          The open-source CLI that calculates your Terraform plan costs across European cloud providers.
+          Transparent pricing. No vendor lock-in. One command.
+        </p>
+        <div class="code-block">
+          <p class="code-comment"># Install (Linux / macOS)</p>
+          <p class="mt-1"><span class="code-cmd">curl</span> <span class="code-arg">-sSL https://euroopencost.eu/install.sh | sh</span></p>
+          <p class="mt-3 code-comment"># Or download binary from GitHub Releases</p>
+          <p class="mt-1"><span class="code-cmd">eucost</span> <span class="code-arg">plan</span> <span class="code-highlight">plan.json</span></p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+          <a href="https://github.com/euroopencost/euroopencost/releases" target="_blank"
+             class="flex items-center gap-2 bg-eu-blue text-white px-5 py-3 font-semibold hover:opacity-90 transition-opacity" style="text-decoration:none;">
+            Download Binary
+          </a>
+          <a href="https://github.com/euroopencost/euroopencost" target="_blank"
+             class="flex items-center gap-2 border border-gray-300 text-gray-700 px-5 py-3 font-semibold hover:border-eu-blue hover:text-eu-blue transition-colors" style="text-decoration:none;">
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- CLI Output Demo -->
+      <div class="code-block shadow-xl">
+        <p class="code-comment mb-3"># eucost plan real-plan.json</p>
+        <p class="code-out">+---------------------------+-------------------+------------+-----------+</p>
+        <p class="code-out">| RESSOURCE                 | TYP               | EUR/STUNDE | EUR/MONAT |</p>
+        <p class="code-out">+---------------------------+-------------------+------------+-----------+</p>
+        <p class="code-out">| main                      | <span class="code-highlight">ECS s3.medium.4</span>   |     0.0529 |     38.09 |</p>
+        <p class="code-out">| main (boot volume)        | <span class="code-highlight">EVS SSD 20GB</span>      |     0.0030 |      2.20 |</p>
+        <p class="code-out">| main (eip)                | <span class="code-highlight">EIP</span>               |     0.0044 |      3.17 |</p>
+        <p class="code-out">| cce-cluster               | <span class="code-highlight">CCE cce.s2.small</span>  |     0.3800 |    273.60 |</p>
+        <p class="code-out">| main (security group)     | Security Group    |     0.0000 |      0.00 |</p>
+        <p class="code-out">| main (vpc)                | VPC               |     0.0000 |      0.00 |</p>
+        <p class="code-out">+---------------------------+-------------------+------------+-----------+</p>
+        <p class="code-out">| <span class="code-highlight">TOTAL</span>                     |                   |     <span class="code-highlight">0.4403</span>  |   <span class="code-highlight">317.06</span>  |</p>
+        <p class="code-out">+---------------------------+-------------------+------------+-----------+</p>
+        <p class="mt-4 code-comment"># Also export as HTML report:</p>
+        <p class="code-out"><span class="code-cmd">eucost</span> plan real-plan.json <span class="code-arg">-o html</span> &gt; report.html</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Providers -->
+  <section class="bg-white border border-eu-border mb-16 py-12">
+    <div class="px-8">
+      <p class="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">
+        Supported European Cloud Providers
+      </p>
+      <div class="flex flex-wrap justify-center items-center gap-6 md:gap-12">
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 flex items-center justify-center" style="background:#dce1ff;">
+            <span class="font-bold text-lg" style="color:#003399;">OTC</span>
+          </div>
+          <span class="text-xs text-gray-500 font-medium">OpenTelekomCloud</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 flex items-center justify-center" style="background:#fecb00;">
+            <span class="font-bold text-lg" style="color:#241a00;">HZ</span>
+          </div>
+          <span class="text-xs text-gray-500 font-medium">Hetzner Cloud</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 flex items-center justify-center" style="background:#004815;">
+            <span class="font-bold text-lg" style="color:#83fc8e;">STK</span>
+          </div>
+          <span class="text-xs text-gray-500 font-medium">STACKIT</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 flex items-center justify-center" style="background:#002068;">
+            <span class="font-bold text-lg" style="color:#b5c4ff;">ION</span>
+          </div>
+          <span class="text-xs text-gray-500 font-medium">IONOS Cloud</span>
+        </div>
+        <div class="flex flex-col items-center gap-2 opacity-40">
+          <div class="w-14 h-14 flex items-center justify-center border-2 border-dashed border-gray-300">
+            <span class="text-gray-400 font-bold text-sm">+</span>
+          </div>
+          <span class="text-xs text-gray-400 font-medium">More soon</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="mb-16">
+    <div class="text-center mb-10">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Why EuroOpenCost</p>
+      <h2 class="text-4xl font-bold text-eu-blue tracking-tight">
+        Built for European Infrastructure Teams
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="relative bg-white border border-eu-border p-8 overflow-hidden">
+        <div class="compliance-ribbon bg-eu-blue"></div>
+        <div class="w-10 h-10 bg-blue-50 flex items-center justify-center mb-5">
+          <i class="fa-solid fa-terminal text-eu-blue"></i>
+        </div>
+        <h3 class="font-bold text-lg text-eu-blue mb-2">One Command</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Point at any Terraform plan JSON and get instant cost breakdowns — no signup, no API keys, no SaaS.
+        </p>
+        <div class="mt-4 code-block text-xs" style="padding:0.5rem 0.75rem; border-radius:0.375rem;">
+          <span class="code-cmd">eucost</span> <span class="code-arg">plan</span> plan.json
+        </div>
+      </div>
+      <div class="relative bg-white border border-eu-border p-8 overflow-hidden">
+        <div class="compliance-ribbon" style="background:#fecb00;"></div>
+        <div class="w-10 h-10 flex items-center justify-center mb-5" style="background:#fffbeb;">
+          <i class="fa-solid fa-code-compare" style="color:#745b00;"></i>
+        </div>
+        <h3 class="font-bold text-lg text-eu-blue mb-2">Compare Providers</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Side-by-side comparison across OTC, Hetzner, STACKIT and IONOS — see exactly how much you save by switching.
+        </p>
+        <div class="mt-4 code-block text-xs" style="padding:0.5rem 0.75rem; border-radius:0.375rem;">
+          <span class="code-cmd">eucost</span> <span class="code-arg">compare</span> otc.json hz.json
+        </div>
+      </div>
+      <div class="relative bg-white border border-eu-border p-8 overflow-hidden">
+        <div class="compliance-ribbon" style="background:#45bf59;"></div>
+        <div class="w-10 h-10 flex items-center justify-center mb-5" style="background:#f0fdf4;">
+          <i class="fa-solid fa-shield-halved" style="color:#002f0b;"></i>
+        </div>
+        <h3 class="font-bold text-lg text-eu-blue mb-2">EU Sovereign</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Every supported provider is EU-owned and EU-located. NIS2 compliant by default. Your data stays in Europe.
+        </p>
+        <div class="mt-4 code-block text-xs" style="padding:0.5rem 0.75rem; border-radius:0.375rem;">
+          <span class="code-arg">-o html</span> &gt; <span class="code-highlight">report.html</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Output Formats -->
+  <section class="bg-white border border-eu-border mb-16 py-12 px-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+      <div class="space-y-3">
+        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Output Formats</span>
+        <h2 class="font-bold text-2xl text-eu-blue">From Terminal to Boardroom</h2>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Use the table view for daily DevOps work, JSON for CI/CD pipelines, and the HTML report for management reviews.
+        </p>
+      </div>
+      <div class="md:col-span-2 grid grid-cols-3 gap-3">
+        <div class="bg-gray-50 border border-eu-border p-5 text-center">
+          <i class="fa-solid fa-table text-eu-blue text-2xl"></i>
+          <p class="font-bold text-eu-blue mt-2">Table</p>
+          <p class="text-xs text-gray-400 mt-1 font-mono">-o table</p>
+        </div>
+        <div class="bg-gray-50 border border-eu-border p-5 text-center relative">
+          <span class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide">Pro</span>
+          <i class="fa-solid fa-brackets-curly text-eu-blue text-2xl"></i>
+          <p class="font-bold text-eu-blue mt-2">JSON</p>
+          <p class="text-xs text-gray-400 mt-1 font-mono">-o json</p>
+        </div>
+        <div class="border border-eu-border p-5 text-center relative" style="background:#0a1945;">
+          <span class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wide">Pro</span>
+          <i class="fa-solid fa-file-code text-blue-200 text-2xl"></i>
+          <p class="font-bold text-white mt-2">HTML Report</p>
+          <p class="text-xs text-blue-300 mt-1 font-mono">-o html</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="mb-16">
+    <div class="text-center mb-10">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Pricing</p>
+      <h2 class="text-4xl font-bold text-eu-blue tracking-tight">Free to start. Pro when you scale.</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      <!-- Community -->
+      <div class="bg-white border border-eu-border p-8 space-y-6">
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Community</p>
+          <p class="font-bold text-3xl text-eu-blue mt-1">Free</p>
+          <p class="text-gray-500 text-sm mt-1">Open source. Forever.</p>
+        </div>
+        <ul class="space-y-3 text-sm">
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-500"></i><span><code class="text-xs bg-gray-100 px-1.5 py-0.5">eucost plan</code> — table output</span></li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-500"></i><span>OTC, Hetzner, STACKIT, IONOS</span></li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-500"></i><span>No signup, no credentials</span></li>
+          <li class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-minus"></i><span>JSON / HTML output</span></li>
+          <li class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-minus"></i><span>Provider comparison</span></li>
+          <li class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-minus"></i><span>Web dashboard</span></li>
+        </ul>
+        <a href="https://github.com/euroopencost/euroopencost/releases" target="_blank"
+           class="block text-center border border-eu-blue text-eu-blue px-5 py-3 font-semibold hover:bg-blue-50 transition-colors text-sm" style="text-decoration:none;">
+          Download Free
+        </a>
+      </div>
+      <!-- Pro -->
+      <div class="p-8 space-y-6 text-white relative overflow-hidden" style="background:#0a1945;">
+        <div class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-2.5 py-1 uppercase tracking-wide">Pro</div>
+        <div>
+          <p class="text-xs font-bold text-blue-300 uppercase tracking-widest">Professional</p>
+          <p class="font-bold text-3xl mt-1">Token-based</p>
+          <p class="text-blue-300 text-sm mt-1">Get your token from the dashboard.</p>
+        </div>
+        <ul class="space-y-3 text-sm">
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-400"></i><span>Everything in Community</span></li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-400"></i><span>JSON &amp; HTML output</span></li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-400"></i><span>Provider comparison (<code class="text-xs bg-blue-800 px-1.5 py-0.5">eucost compare</code>)</span></li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-400"></i><span>Auto-run terraform (<code class="text-xs bg-blue-800 px-1.5 py-0.5">eucost breakdown</code>)</span></li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-400"></i><span>Sovereign Web IDE (<code class="text-xs bg-blue-800 px-1.5 py-0.5">eucost serve</code>)</span></li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-green-400"></i><span>MCP AI agent access</span></li>
+        </ul>
+        <a href="index.html" onclick="setTimeout(()=>{if(window.navigate)navigate('settings')},100)"
+           class="block text-center bg-yellow-400 text-yellow-900 px-5 py-3 font-bold hover:bg-yellow-300 transition-colors text-sm" style="text-decoration:none;">
+          Get Pro Token
+        </a>
+      </div>
+    </div>
+    <!-- Auth instructions -->
+    <div class="mt-10 max-w-xl mx-auto code-block">
+      <p class="code-comment"># Activate Pro (takes 30 seconds)</p>
+      <p class="mt-2"><span class="code-cmd">eucost</span> <span class="code-arg">auth login</span> <span class="code-highlight">--token &lt;YOUR_TOKEN&gt;</span></p>
+      <p class="mt-1"><span class="code-cmd">eucost</span> <span class="code-arg">plan</span> plan.json <span class="code-highlight">-o html</span> &gt; report.html</p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="mb-16 text-center">
+    <div class="p-12 text-white space-y-6" style="background:#0a1945;">
+      <div class="inline-flex items-center gap-2 bg-green-500/20 text-green-300 border border-green-500/30 px-3 py-1.5 text-xs font-bold uppercase tracking-widest">
+        <i class="fa-solid fa-shield-halved text-[12px]"></i>
+        Open Source &amp; Free Forever
+      </div>
+      <h2 class="text-4xl font-bold tracking-tight">Start calculating your EU cloud costs.</h2>
+      <p class="text-blue-300 text-lg max-w-lg mx-auto">
+        No signup. No SaaS. No cloud account required. Just your Terraform plan JSON.
+      </p>
+      <div class="code-block max-w-xl mx-auto text-left" style="background:#0f172a;">
+        <p class="code-comment"># Download and run</p>
+        <p class="mt-2"><span class="code-cmd">eucost</span> <span class="code-arg">plan</span> <span class="code-highlight">your-plan.json</span></p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="https://github.com/euroopencost/euroopencost/releases" target="_blank"
+           class="bg-white text-eu-blue px-6 py-3 font-semibold hover:bg-blue-50 transition-colors" style="text-decoration:none;">
+          Download Binary
+        </a>
+        <a href="https://github.com/euroopencost/euroopencost" target="_blank"
+           class="border border-blue-700 text-blue-200 px-6 py-3 font-semibold hover:border-blue-500 hover:text-white transition-colors" style="text-decoration:none;">
+          View Source on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="border-t border-eu-border bg-white py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+    <span class="text-xl font-bold text-eu-blue tracking-tight">eucost</span>
+    <p class="text-xs text-gray-400">
+      Open Source &bull; MIT License &bull;
+      <a href="https://github.com/euroopencost/euroopencost" class="hover:text-eu-blue transition-colors">github.com/euroopencost/euroopencost</a>
+    </p>
+    <p class="text-xs text-gray-400">euroopencost.eu</p>
+  </div>
+</footer>
+<script>
+document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+  document.getElementById('mobile-menu')?.classList.toggle('hidden');
+});
+</script>
+</body>
+</html>

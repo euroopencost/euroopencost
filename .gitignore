@@ -1,0 +1,47 @@
+# ─── Binaries ────────────────────────────────────────────────────────────────
+/eucost
+/eucost.exe
+/otc-cost
+/otc-cost.exe
+*.exe
+
+# ─── Generated output ────────────────────────────────────────────────────────
+report.html
+*.html.tmp
+dist/
+
+# ─── Go build artifacts ──────────────────────────────────────────────────────
+*.test
+*.out
+
+# ─── Internal directories (not for public repo) ──────────────────────────────
+terraform-providers/
+terraform-minimal/
+dashboard/
+euroopencost/
+
+# ─── Internal docs (trade secret / agent context) ───────────────────────────
+CLAUDE.md
+MASTER_PROMPT.md
+PROJECT_SUMMARY.md
+FEATURES.md
+INSTALLATION.md
+QUICKSTART.md
+BLUEPRINT.md
+FUTURE.md
+visionboard.md
+WEB_IDE_INTEGRATION.md
+FRONTEND_MASTER_PROMPT.md
+
+# ─── IDE and OS files ────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+/euroopencost/demo-report.html
+/euroopencost/Dockerfile
+/euroopencost/final-report.html
+/euroopencost/FRONTEND_MASTER_PROMPT.md
+/euroopencost/site/ide.html
+/euroopencost/mixed-report.html

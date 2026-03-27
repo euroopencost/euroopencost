@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src https://pquqtyfezwagzeujweqa.supabase.co; img-src 'self' data:;">
+<title>EuroOpenCost | Compare Providers</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'eu-blue':'#0a1945','eu-border':'#e5e7eb' },
+        fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'] },
+      }
+    }
+  }
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  .grid-bg { background-color:#f8f9fa; background-image:linear-gradient(to right,#e5e7eb 1px,transparent 1px),linear-gradient(to bottom,#e5e7eb 1px,transparent 1px); background-size:50px 50px; }
+  .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
+  .nav-link:hover { color:#374151; border-color:#d1d5db; }
+  .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+  .row-selected { background-color:#eff6ff !important; }
+  .table-row { cursor:pointer; transition:background 0.1s; }
+  .cat-tab { transition:all 0.15s; border-bottom:2px solid transparent; }
+  .cat-tab.active { border-color:#0a1945; color:#111827; font-weight:600; }
+  .compare-card { transition:box-shadow 0.15s; }
+  .compare-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+  @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .slide-up { animation:slideUp 0.3s ease; }
+  @media print {
+    header, #filters, #cat-tabs-row, #export-btn, #detail-card, #compare-bar, #compare-view, .no-print { display:none !important; }
+    body { background:white !important; }
+    .grid-bg { background:none !important; }
+    #compare-table { box-shadow:none !important; border:1px solid #ccc; }
+    .print-title { display:block !important; }
+    @page { margin:15mm; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body class="text-gray-800 font-sans antialiased overflow-x-hidden min-h-screen grid-bg bg-[#f8f9fa]">
+
+<header class="bg-white/90 backdrop-blur-sm border-b border-eu-border sticky top-0 z-50 no-print">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="audit.html" class="nav-link">Audit Engine <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="policies.html" class="nav-link">Sovereign Policies <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="treasury.html" class="nav-link">Treasury <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link active">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <a href="index.html#settings" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" title="Settings" style="text-decoration:none;"><i class="fa-solid fa-gear text-sm"></i></a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1"><i class="fa-solid fa-bars text-lg"></i></button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="audit.html" class="nav-link-mobile">Audit Engine <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="policies.html" class="nav-link-mobile">Sovereign Policies <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="treasury.html" class="nav-link-mobile">Treasury <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Print title -->
+  <div class="print-title hidden mb-6">
+    <h1 class="text-3xl font-normal text-gray-900">EU Cloud Provider Comparison</h1>
+    <p class="text-xs text-gray-400 mt-1">Generated by EuroOpenCost · euroopencost.eu · <span id="print-date"></span></p>
+  </div>
+
+  <!-- Page header -->
+  <div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+    <div>
+      <h1 class="text-3xl sm:text-4xl font-normal text-gray-900 leading-tight">Compare<br/>Providers</h1>
+      <p class="mt-2 text-xs text-gray-500 uppercase tracking-widest">EU CLOUD INSTANCE PRICING</p>
+    </div>
+    <button id="export-btn" onclick="exportPDF()" class="no-print self-start sm:self-auto flex items-center gap-2 bg-eu-blue text-white px-5 py-2.5 text-xs font-medium tracking-widest uppercase hover:bg-blue-900 transition-colors">
+      <i class="fa-solid fa-file-pdf"></i> EXPORT PDF
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div id="filters" class="no-print bg-white border border-eu-border p-4 shadow-sm mb-0 flex flex-wrap gap-4 items-end border-b-0">
+    <div>
+      <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Provider</label>
+      <select id="filter-provider" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+        <option value="">All Providers</option>
+        <option value="Hetzner">Hetzner</option>
+        <option value="OVH">OVH</option>
+        <option value="Scaleway">Scaleway</option>
+        <option value="IONOS">IONOS</option>
+        <option value="STACKIT">STACKIT</option>
+        <option value="OTC">OTC (T-Systems)</option>
+        <option value="AWS">AWS</option>
+        <option value="GCP">GCP</option>
+        <option value="Azure">Azure</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Min RAM</label>
+      <select id="filter-ram" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+        <option value="0">Any</option>
+        <option value="2">2 GB+</option>
+        <option value="4">4 GB+</option>
+        <option value="8">8 GB+</option>
+        <option value="16">16 GB+</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Max Price</label>
+      <select id="filter-price" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+        <option value="9999">Any</option>
+        <option value="10">≤ €10</option>
+        <option value="25">≤ €25</option>
+        <option value="50">≤ €50</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="filter-sovereign" onchange="applyFilters()" class="w-3.5 h-3.5 accent-eu-blue"/>
+      <label for="filter-sovereign" class="text-xs font-medium text-gray-700 cursor-pointer">EU Sovereign only</label>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="filter-group" onchange="toggleGrouping()" class="w-3.5 h-3.5 accent-eu-blue"/>
+      <label for="filter-group" class="text-xs font-medium text-gray-700 cursor-pointer">Group by provider</label>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <span class="text-[10px] text-gray-400 uppercase tracking-wider">Sort by</span>
+      <select id="sort-by" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+        <option value="price">Price</option>
+        <option value="cpu">vCPU</option>
+        <option value="ram">RAM</option>
+        <option value="provider">Provider</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Category tabs -->
+  <div id="cat-tabs-row" class="no-print bg-white border border-eu-border border-t border-t-gray-100 shadow-sm mb-4 flex items-center px-4 gap-0">
+    <button onclick="setCategory('compute')" id="cat-compute" class="cat-tab active text-[10px] font-semibold uppercase tracking-widest px-4 py-3 text-gray-700">
+      <i class="fa-solid fa-microchip mr-1.5 text-[9px]"></i>Compute
+    </button>
+    <button onclick="setCategory('storage')" id="cat-storage" class="cat-tab text-[10px] font-semibold uppercase tracking-widest px-4 py-3 text-gray-400 hover:text-gray-700">
+      <i class="fa-solid fa-hard-drive mr-1.5 text-[9px]"></i>Storage
+    </button>
+    <button onclick="setCategory('database')" id="cat-database" class="cat-tab text-[10px] font-semibold uppercase tracking-widest px-4 py-3 text-gray-400 hover:text-gray-700">
+      <i class="fa-solid fa-database mr-1.5 text-[9px]"></i>Database
+    </button>
+    <div class="ml-auto text-[10px] text-gray-400 py-2 no-print">
+      <span id="filtered-count">—</span> instances · <span class="text-blue-500 cursor-pointer" onclick="clearCompareSelection()">clear selection</span>
+    </div>
+  </div>
+
+  <div class="flex gap-6">
+    <!-- Main table area -->
+    <div class="flex-1 min-w-0">
+      <div id="compare-table" class="bg-white border border-eu-border shadow-sm overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b border-eu-border bg-gray-50">
+              <th class="w-8 px-3 py-3 no-print"></th>
+              <th class="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Provider</th>
+              <th class="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Instance</th>
+              <th class="text-right px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">vCPU</th>
+              <th class="text-right px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">RAM</th>
+              <th class="text-right px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Storage</th>
+              <th class="text-right px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">€/mo</th>
+              <th class="text-center px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Sovereign</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div id="no-results" class="hidden text-center py-12">
+          <i class="fa-solid fa-filter text-gray-200 text-3xl block mb-3"></i>
+          <p class="text-xs text-gray-400">No instances match your filters.</p>
+        </div>
+      </div>
+      <p class="text-[10px] text-gray-400 mt-2 no-print">Click a row to see details · Check boxes to compare side-by-side · Prices are indicative</p>
+
+      <!-- Side-by-side comparison view -->
+      <div id="compare-view" class="hidden mt-6 slide-up">
+        <div class="bg-white border border-eu-border shadow-sm">
+          <div class="px-5 py-3.5 border-b border-eu-border flex items-center justify-between">
+            <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              <i class="fa-solid fa-code-compare mr-1.5 text-eu-blue"></i>Side-by-Side Comparison
+            </h2>
+            <button onclick="closeCompareView()" class="text-gray-300 hover:text-gray-600 text-xs"><i class="fa-solid fa-xmark mr-1"></i>Close</button>
+          </div>
+          <div id="compare-cards" class="flex overflow-x-auto divide-x divide-eu-border"></div>
+          <div class="border-t border-eu-border p-5">
+            <p class="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Relative Monthly Cost</p>
+            <div style="height:90px"><canvas id="chart-compare-bar"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Card -->
+    <div id="detail-card" class="hidden no-print w-72 flex-shrink-0">
+      <div class="bg-white border border-eu-border shadow-sm p-5 sticky top-24 space-y-4">
+        <!-- Header -->
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">SELECTED NODE</p>
+            <h2 id="dc-name" class="text-xl font-normal text-gray-900"></h2>
+          </div>
+          <button onclick="closeDetail()" class="text-gray-300 hover:text-gray-600 text-xs flex-shrink-0 mt-1"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <!-- Location -->
+        <div id="dc-location" class="bg-gray-50 p-3 flex items-center gap-2">
+          <i class="fa-solid fa-location-dot text-eu-blue text-sm flex-shrink-0"></i>
+          <div>
+            <div id="dc-region" class="text-xs font-medium text-gray-900"></div>
+            <div id="dc-country" class="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5"></div>
+          </div>
+        </div>
+        <!-- Pricing -->
+        <div class="flex gap-3">
+          <div class="border border-gray-200 p-3 flex-1">
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Monthly</div>
+            <div id="dc-monthly" class="text-lg font-semibold text-gray-900"></div>
+          </div>
+          <div class="border border-gray-200 p-3 flex-1">
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Hourly</div>
+            <div id="dc-hourly" class="text-lg font-semibold text-gray-900"></div>
+          </div>
+        </div>
+        <!-- Sovereignty -->
+        <div id="dc-sovereign-box" class="border p-3 flex items-center gap-2">
+          <i id="dc-sovereign-icon" class="fa-solid fa-shield-halved text-sm"></i>
+          <div>
+            <div id="dc-sovereign-status" class="text-xs font-bold text-gray-900 uppercase tracking-wider"></div>
+            <div id="dc-sovereign-sub" class="text-[10px] text-gray-400 mt-0.5"></div>
+          </div>
+        </div>
+        <!-- Configuration -->
+        <div>
+          <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Node Configuration</p>
+          <ul id="dc-config" class="text-xs divide-y divide-gray-100"></ul>
+        </div>
+        <!-- Terraform snippet -->
+        <div class="border-t border-gray-100 pt-3">
+          <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Terraform Resource Type</p>
+          <div class="bg-[#1e1e1e] p-3 relative group rounded-sm">
+            <code id="dc-tf-snippet" class="text-[11px] text-green-400 font-mono block break-all"></code>
+            <button onclick="copyTerraformSnippet()" class="absolute top-1.5 right-1.5 text-gray-600 hover:text-gray-300 text-[9px] opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-1 bg-[#2d2d2d]" title="Copy">
+              <i class="fa-solid fa-copy mr-0.5"></i> Copy
+            </button>
+          </div>
+        </div>
+        <!-- Actions -->
+        <div class="space-y-2 pt-1">
+          <button onclick="addToCalculator()" class="w-full border border-eu-blue text-eu-blue text-[10px] font-semibold py-2 uppercase tracking-wider hover:bg-eu-blue hover:text-white transition-colors">
+            <i class="fa-solid fa-calculator mr-1.5"></i> Add to Calculator
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating compare bar -->
+<div id="compare-bar" class="hidden no-print fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-eu-blue text-white shadow-2xl flex items-center gap-4 px-6 py-3 slide-up">
+  <i class="fa-solid fa-code-compare text-blue-300 text-sm"></i>
+  <span class="text-xs font-medium"><span id="compare-count">0</span> selected</span>
+  <button onclick="openCompareView()" class="bg-white text-eu-blue text-xs font-bold px-4 py-1.5 hover:bg-gray-100 transition-colors">
+    Compare (<span id="compare-bar-count">0</span>)
+  </button>
+  <button onclick="clearCompareSelection()" class="text-blue-300 hover:text-white text-xs transition-colors ml-1">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+</div>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+// Supabase anon key is a public JWT. Auth is enforced server-side via RLS.
+const SUPABASE_URL      = 'https://pquqtyfezwagzeujweqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdXF0eWZlendhZ3pldWp3ZXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTk5ODIsImV4cCI6MjA5MDE3NTk4Mn0.SP8ZvG64595-IflvEhZTodWVzGJYoqszfj1zlRGR66M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let authUser = null, authProfile = null;
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast'), m = document.getElementById('toast-msg');
+  if (!t||!m) return; m.textContent = msg;
+  t.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none '+(isError?'bg-red-600':'bg-eu-blue');
+  t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; },3500);
+}
+
+// ── Provider colors ────────────────────────────────────────────────────────
+const PROVIDER_COLORS = {
+  Hetzner:'#DC2626', OVH:'#0891B2', Scaleway:'#7C3AED', IONOS:'#2563EB',
+  STACKIT:'#059669', OTC:'#D97706', AWS:'#F59E0B', GCP:'#3B82F6', Azure:'#0EA5E9'
+};
+
+// ── Instance data ──────────────────────────────────────────────────────────
+const COMPUTE_INSTANCES = [
+  {provider:'Hetzner',name:'CX11',cpu:1,ram:2,storage:20,price:3.79,hourly:0.0053,sovereign:true,region:'Nuremberg, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'Hetzner',name:'CX21',cpu:2,ram:4,storage:40,price:5.83,hourly:0.0081,sovereign:true,region:'Falkenstein, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'Hetzner',name:'CX31',cpu:2,ram:8,storage:80,price:10.59,hourly:0.0147,sovereign:true,region:'Falkenstein, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'Hetzner',name:'CX41',cpu:4,ram:16,storage:160,price:19.55,hourly:0.0271,sovereign:true,region:'Falkenstein, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'Hetzner',name:'CX51',cpu:8,ram:32,storage:240,price:37.09,hourly:0.0515,sovereign:true,region:'Falkenstein, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'Hetzner',name:'CPX11',cpu:2,ram:2,storage:40,price:4.35,hourly:0.0060,sovereign:true,region:'Nuremberg, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'Hetzner',name:'CPX21',cpu:3,ram:4,storage:80,price:7.55,hourly:0.0105,sovereign:true,region:'Nuremberg, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'Hetzner',name:'CPX31',cpu:4,ram:8,storage:160,price:13.09,hourly:0.0182,sovereign:true,region:'Nuremberg, Germany',country:'GERMANY — EU',tf:'hcloud_server'},
+  {provider:'OVH',name:'S1-2',cpu:1,ram:2,storage:10,price:3.50,hourly:0.0049,sovereign:true,region:'Gravelines, France',country:'FRANCE — EU',tf:'ovh_cloud_project_instance'},
+  {provider:'OVH',name:'S1-4',cpu:2,ram:4,storage:10,price:7.00,hourly:0.0097,sovereign:true,region:'Gravelines, France',country:'FRANCE — EU',tf:'ovh_cloud_project_instance'},
+  {provider:'OVH',name:'S1-8',cpu:4,ram:8,storage:10,price:14.00,hourly:0.0194,sovereign:true,region:'Gravelines, France',country:'FRANCE — EU',tf:'ovh_cloud_project_instance'},
+  {provider:'OVH',name:'B2-7',cpu:2,ram:7,storage:50,price:22.40,hourly:0.0311,sovereign:true,region:'Gravelines, France',country:'FRANCE — EU',tf:'ovh_cloud_project_instance'},
+  {provider:'OVH',name:'B2-15',cpu:4,ram:15,storage:100,price:44.80,hourly:0.0622,sovereign:true,region:'Gravelines, France',country:'FRANCE — EU',tf:'ovh_cloud_project_instance'},
+  {provider:'Scaleway',name:'DEV1-S',cpu:2,ram:2,storage:20,price:2.99,hourly:0.0042,sovereign:true,region:'Paris, France',country:'FRANCE — EU',tf:'scaleway_instance_server'},
+  {provider:'Scaleway',name:'DEV1-M',cpu:3,ram:4,storage:40,price:5.99,hourly:0.0083,sovereign:true,region:'Paris, France',country:'FRANCE — EU',tf:'scaleway_instance_server'},
+  {provider:'Scaleway',name:'DEV1-L',cpu:4,ram:8,storage:80,price:11.99,hourly:0.0167,sovereign:true,region:'Paris, France',country:'FRANCE — EU',tf:'scaleway_instance_server'},
+  {provider:'Scaleway',name:'GP1-XS',cpu:4,ram:16,storage:150,price:14.99,hourly:0.0208,sovereign:true,region:'Amsterdam, Netherlands',country:'NETHERLANDS — EU',tf:'scaleway_instance_server'},
+  {provider:'Scaleway',name:'GP1-S',cpu:8,ram:32,storage:300,price:29.99,hourly:0.0417,sovereign:true,region:'Amsterdam, Netherlands',country:'NETHERLANDS — EU',tf:'scaleway_instance_server'},
+  {provider:'IONOS',name:'S',cpu:1,ram:1,storage:10,price:1.00,hourly:0.0014,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'ionoscloud_server'},
+  {provider:'IONOS',name:'M',cpu:2,ram:4,storage:20,price:10.30,hourly:0.0143,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'ionoscloud_server'},
+  {provider:'IONOS',name:'L',cpu:4,ram:8,storage:50,price:20.60,hourly:0.0286,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'ionoscloud_server'},
+  {provider:'IONOS',name:'XL',cpu:8,ram:16,storage:100,price:41.20,hourly:0.0572,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'ionoscloud_server'},
+  {provider:'STACKIT',name:'t1.micro',cpu:1,ram:1,storage:10,price:1.10,hourly:0.0015,sovereign:true,region:'Stuttgart, Germany',country:'GERMANY — EU',tf:'stackit_server'},
+  {provider:'STACKIT',name:'t1.small',cpu:2,ram:2,storage:20,price:2.20,hourly:0.0031,sovereign:true,region:'Stuttgart, Germany',country:'GERMANY — EU',tf:'stackit_server'},
+  {provider:'STACKIT',name:'c1.medium',cpu:4,ram:8,storage:50,price:8.80,hourly:0.0122,sovereign:true,region:'Stuttgart, Germany',country:'GERMANY — EU',tf:'stackit_server'},
+  {provider:'OTC',name:'s3.small.1',cpu:1,ram:1,storage:40,price:6.50,hourly:0.0090,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'opentelekomcloud_compute_instance_v2'},
+  {provider:'OTC',name:'s3.medium.4',cpu:1,ram:4,storage:40,price:38.09,hourly:0.0529,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'opentelekomcloud_compute_instance_v2'},
+  {provider:'OTC',name:'s3.large.2',cpu:2,ram:8,storage:80,price:25.00,hourly:0.0347,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'opentelekomcloud_compute_instance_v2'},
+  {provider:'AWS',name:'t3.micro',cpu:2,ram:1,storage:0,price:8.47,hourly:0.0117,sovereign:false,region:'us-east-1, USA',country:'USA — NON-EU',tf:'aws_instance'},
+  {provider:'AWS',name:'t3.small',cpu:2,ram:2,storage:0,price:16.93,hourly:0.0235,sovereign:false,region:'eu-west-1, Ireland',country:'IRELAND (US-OWNED)',tf:'aws_instance'},
+  {provider:'AWS',name:'t3.medium',cpu:2,ram:4,storage:0,price:33.87,hourly:0.0470,sovereign:false,region:'eu-central-1, Germany',country:'GERMANY (US-OWNED)',tf:'aws_instance'},
+  {provider:'GCP',name:'e2-micro',cpu:2,ram:1,storage:0,price:6.11,hourly:0.0085,sovereign:false,region:'europe-west3, Germany',country:'GERMANY (US-OWNED)',tf:'google_compute_instance'},
+  {provider:'GCP',name:'e2-small',cpu:2,ram:2,storage:0,price:13.73,hourly:0.0191,sovereign:false,region:'europe-west3, Germany',country:'GERMANY (US-OWNED)',tf:'google_compute_instance'},
+  {provider:'GCP',name:'e2-medium',cpu:2,ram:4,storage:0,price:27.45,hourly:0.0381,sovereign:false,region:'europe-west3, Germany',country:'GERMANY (US-OWNED)',tf:'google_compute_instance'},
+  {provider:'Azure',name:'B1s',cpu:1,ram:1,storage:0,price:8.03,hourly:0.0111,sovereign:false,region:'westeurope, Netherlands',country:'NETHERLANDS (US-OWNED)',tf:'azurerm_linux_virtual_machine'},
+  {provider:'Azure',name:'B2s',cpu:2,ram:4,storage:0,price:32.12,hourly:0.0446,sovereign:false,region:'westeurope, Netherlands',country:'NETHERLANDS (US-OWNED)',tf:'azurerm_linux_virtual_machine'},
+  {provider:'Azure',name:'D2s_v3',cpu:2,ram:8,storage:0,price:69.35,hourly:0.0963,sovereign:false,region:'germanywestcentral',country:'GERMANY (US-OWNED)',tf:'azurerm_linux_virtual_machine'},
+];
+
+const STORAGE_INSTANCES = [
+  {provider:'Hetzner',name:'Volume 10 GB',cpu:0,ram:0,storage:10,price:0.48,hourly:0.00067,sovereign:true,region:'Nuremberg, Germany',country:'GERMANY — EU',tf:'hcloud_volume',category:'storage'},
+  {provider:'Hetzner',name:'Volume 100 GB',cpu:0,ram:0,storage:100,price:4.76,hourly:0.0066,sovereign:true,region:'Nuremberg, Germany',country:'GERMANY — EU',tf:'hcloud_volume',category:'storage'},
+  {provider:'Hetzner',name:'Volume 500 GB',cpu:0,ram:0,storage:500,price:23.80,hourly:0.033,sovereign:true,region:'Nuremberg, Germany',country:'GERMANY — EU',tf:'hcloud_volume',category:'storage'},
+  {provider:'Scaleway',name:'Block 25 GB',cpu:0,ram:0,storage:25,price:1.00,hourly:0.0014,sovereign:true,region:'Paris, France',country:'FRANCE — EU',tf:'scaleway_block_snapshot',category:'storage'},
+  {provider:'Scaleway',name:'Block 250 GB',cpu:0,ram:0,storage:250,price:10.00,hourly:0.0139,sovereign:true,region:'Paris, France',country:'FRANCE — EU',tf:'scaleway_block_snapshot',category:'storage'},
+  {provider:'OTC',name:'EVS 100 GB',cpu:0,ram:0,storage:100,price:5.40,hourly:0.0075,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'opentelekomcloud_blockstorage_volume_v2',category:'storage'},
+  {provider:'AWS',name:'S3 Standard 100 GB',cpu:0,ram:0,storage:100,price:2.30,hourly:0.0032,sovereign:false,region:'eu-central-1, Germany',country:'GERMANY (US-OWNED)',tf:'aws_s3_bucket',category:'storage'},
+  {provider:'Azure',name:'Managed Disk 128 GB',cpu:0,ram:0,storage:128,price:10.21,hourly:0.0142,sovereign:false,region:'westeurope, Netherlands',country:'NETHERLANDS (US-OWNED)',tf:'azurerm_managed_disk',category:'storage'},
+];
+
+const DATABASE_INSTANCES = [
+  {provider:'IONOS',name:'PostgreSQL S',cpu:2,ram:2,storage:20,price:15.00,hourly:0.0208,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'ionoscloud_pg_cluster',category:'database'},
+  {provider:'IONOS',name:'PostgreSQL M',cpu:4,ram:8,storage:100,price:55.00,hourly:0.0764,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'ionoscloud_pg_cluster',category:'database'},
+  {provider:'OTC',name:'RDS MySQL S',cpu:2,ram:4,storage:40,price:72.00,hourly:0.10,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'opentelekomcloud_rds_instance_v3',category:'database'},
+  {provider:'OTC',name:'RDS PostgreSQL M',cpu:4,ram:8,storage:100,price:140.00,hourly:0.194,sovereign:true,region:'Frankfurt, Germany',country:'GERMANY — EU',tf:'opentelekomcloud_rds_instance_v3',category:'database'},
+  {provider:'AWS',name:'RDS t3.micro',cpu:2,ram:1,storage:20,price:14.64,hourly:0.0203,sovereign:false,region:'eu-central-1, Germany',country:'GERMANY (US-OWNED)',tf:'aws_db_instance',category:'database'},
+  {provider:'AWS',name:'RDS t3.medium',cpu:2,ram:4,storage:100,price:58.40,hourly:0.081,sovereign:false,region:'eu-central-1, Germany',country:'GERMANY (US-OWNED)',tf:'aws_db_instance',category:'database'},
+  {provider:'Azure',name:'SQL Basic',cpu:1,ram:2,storage:5,price:15.02,hourly:0.0208,sovereign:false,region:'westeurope, Netherlands',country:'NETHERLANDS (US-OWNED)',tf:'azurerm_mssql_database',category:'database'},
+];
+
+const ALL_DATA = { compute: COMPUTE_INSTANCES, storage: STORAGE_INSTANCES, database: DATABASE_INSTANCES };
+
+// Allowed filter values to prevent injection
+const ALLOWED_PROVIDERS = ['','Hetzner','OVH','Scaleway','IONOS','STACKIT','OTC','AWS','GCP','Azure'];
+const ALLOWED_SORTS = ['price','cpu','ram','provider'];
+const ALLOWED_RAM = ['0','2','4','8','16'];
+const ALLOWED_PRICES = ['9999','10','25','50'];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let filtered = [], currentCategory = 'compute', groupByProvider = false;
+let compareSelection = [], selectedRowInst = null, compareChart = null;
+
+// ── Terraform snippet generator (static map — no user input) ───────────────
+function generateTerraformSnippet(inst) {
+  const snippets = {
+    hcloud_server: `resource "hcloud_server" "this" {\n  name        = "my-server"\n  server_type = "cx21"\n  image       = "ubuntu-22.04"\n  location    = "nbg1"\n}`,
+    ovh_cloud_project_instance: `resource "ovh_cloud_project_instance" "this" {\n  service_name = var.service_name\n  region       = "GRA7"\n  flavor_name  = "s1-4"\n  image_id     = var.image_id\n}`,
+    scaleway_instance_server: `resource "scaleway_instance_server" "this" {\n  type  = "DEV1-M"\n  image = "ubuntu_jammy"\n  zone  = "fr-par-1"\n}`,
+    ionoscloud_server: `resource "ionoscloud_server" "this" {\n  name              = "my-server"\n  datacenter_id     = var.datacenter_id\n  cores             = 2\n  ram               = 4096\n  cpu_family        = "INTEL_ICELAKE"\n}`,
+    stackit_server: `resource "stackit_server" "this" {\n  project_id    = var.project_id\n  name          = "my-server"\n  machine_type  = "t1.small"\n}`,
+    opentelekomcloud_compute_instance_v2: `resource "opentelekomcloud_compute_instance_v2" "this" {\n  name            = "my-instance"\n  flavor_name     = "s3.large.2"\n  image_id        = var.image_id\n  security_groups = ["default"]\n}`,
+    aws_instance: `resource "aws_instance" "this" {\n  ami           = var.ami_id\n  instance_type = "t3.medium"\n  tags = { Name = "my-instance" }\n}`,
+    google_compute_instance: `resource "google_compute_instance" "this" {\n  name         = "my-instance"\n  machine_type = "e2-medium"\n  zone         = "europe-west3-a"\n  boot_disk { initialize_params { image = "debian-cloud/debian-11" } }\n  network_interface { network = "default" }\n}`,
+    azurerm_linux_virtual_machine: `resource "azurerm_linux_virtual_machine" "this" {\n  name                = "my-vm"\n  resource_group_name = var.rg_name\n  location            = "West Europe"\n  size                = "Standard_B2s"\n}`,
+    hcloud_volume: `resource "hcloud_volume" "this" {\n  name     = "my-volume"\n  size     = 100\n  location = "nbg1"\n}`,
+    scaleway_block_snapshot: `resource "scaleway_block_volume" "this" {\n  iops = 5000\n  size_in_gb = 250\n}`,
+    opentelekomcloud_blockstorage_volume_v2: `resource "opentelekomcloud_blockstorage_volume_v2" "this" {\n  name        = "my-volume"\n  size        = 100\n  volume_type = "SSD"\n}`,
+    aws_s3_bucket: `resource "aws_s3_bucket" "this" {\n  bucket = "my-bucket"\n}`,
+    azurerm_managed_disk: `resource "azurerm_managed_disk" "this" {\n  name                 = "my-disk"\n  resource_group_name  = var.rg_name\n  location             = "West Europe"\n  storage_account_type = "Premium_LRS"\n  disk_size_gb         = 128\n}`,
+    ionoscloud_pg_cluster: `resource "ionoscloud_pg_cluster" "this" {\n  postgres_version = "14"\n  instances        = 1\n  cores            = 2\n  ram              = 2048\n  storage_size     = 20480\n  storage_type     = "SSD"\n}`,
+    opentelekomcloud_rds_instance_v3: `resource "opentelekomcloud_rds_instance_v3" "this" {\n  name              = "my-rds"\n  flavor            = "rds.mysql.s1.medium.ha"\n  ha_replication_mode = "semisync"\n}`,
+    aws_db_instance: `resource "aws_db_instance" "this" {\n  identifier     = "my-db"\n  engine         = "mysql"\n  instance_class = "db.t3.medium"\n  allocated_storage = 100\n}`,
+    azurerm_mssql_database: `resource "azurerm_mssql_database" "this" {\n  name      = "my-db"\n  server_id = var.server_id\n  sku_name  = "Basic"\n}`,
+  };
+  return snippets[inst.tf] || `# Terraform resource type:\n${inst.tf}`;
+}
+
+// ── Filters ────────────────────────────────────────────────────────────────
+function applyFilters() {
+  const rawProv  = document.getElementById('filter-provider').value;
+  const rawRam   = document.getElementById('filter-ram').value;
+  const rawPrice = document.getElementById('filter-price').value;
+  const rawSort  = document.getElementById('sort-by').value;
+  // Validate against allowlist
+  const prov    = ALLOWED_PROVIDERS.includes(rawProv)  ? rawProv  : '';
+  const minRam  = ALLOWED_RAM.includes(rawRam)         ? parseInt(rawRam)  : 0;
+  const maxPrice= ALLOWED_PRICES.includes(rawPrice)    ? parseFloat(rawPrice) : 9999;
+  const sortBy  = ALLOWED_SORTS.includes(rawSort)      ? rawSort  : 'price';
+  const sovOnly = document.getElementById('filter-sovereign').checked;
+  const source  = ALL_DATA[currentCategory] || COMPUTE_INSTANCES;
+  filtered = source.filter(i =>
+    (!prov || i.provider === prov) &&
+    (i.ram >= minRam) &&
+    (i.price <= maxPrice) &&
+    (!sovOnly || i.sovereign)
+  );
+  if (sortBy === 'price')    filtered.sort((a,b) => a.price - b.price);
+  else if (sortBy === 'cpu') filtered.sort((a,b) => b.cpu - a.cpu);
+  else if (sortBy === 'ram') filtered.sort((a,b) => b.ram - a.ram);
+  else filtered.sort((a,b) => a.provider.localeCompare(b.provider));
+  renderTable();
+}
+
+function setCategory(cat) {
+  currentCategory = cat;
+  ['compute','storage','database'].forEach(c => {
+    const btn = document.getElementById('cat-' + c);
+    if (btn) btn.classList.toggle('active', c === cat);
+  });
+  clearCompareSelection();
+  closeDetail();
+  applyFilters();
+}
+
+function toggleGrouping() {
+  groupByProvider = document.getElementById('filter-group').checked;
+  applyFilters();
+}
+
+// ── Table rendering (DOM-based, no innerHTML for instance data) ────────────
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  const noRes = document.getElementById('no-results');
+  const countEl = document.getElementById('filtered-count');
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  if (!filtered.length) {
+    noRes.classList.remove('hidden');
+    if (countEl) countEl.textContent = '0';
+    return;
+  }
+  noRes.classList.add('hidden');
+  if (countEl) countEl.textContent = filtered.length;
+  // Find cheapest + most RAM for badges
+  const cheapestPrice = Math.min(...filtered.filter(i => i.sovereign).map(i => i.price));
+  let lastProvider = null;
+  filtered.forEach((inst, i) => {
+    if (groupByProvider && inst.provider !== lastProvider) {
+      const trGroup = document.createElement('tr');
+      trGroup.className = 'bg-gray-50/80 border-b border-eu-border';
+      const tdGroup = document.createElement('td');
+      tdGroup.colSpan = 8; tdGroup.className = 'px-4 py-2';
+      const provDot = document.createElement('span');
+      provDot.className = 'inline-block w-2 h-2 rounded-sm mr-2';
+      provDot.style.background = PROVIDER_COLORS[inst.provider] || '#9ca3af';
+      const provName = document.createElement('span');
+      provName.className = 'text-[10px] font-bold text-gray-500 uppercase tracking-widest';
+      provName.textContent = inst.provider;
+      tdGroup.appendChild(provDot); tdGroup.appendChild(provName);
+      trGroup.appendChild(tdGroup); tbody.appendChild(trGroup);
+      lastProvider = inst.provider;
+    }
+    const tr = document.createElement('tr');
+    tr.className = 'table-row border-b border-gray-50 ' + (inst.sovereign ? 'hover:bg-blue-50/50' : 'opacity-60 hover:opacity-80 hover:bg-gray-50');
+    const selectedInst = compareSelection.find(s => s.provider === inst.provider && s.name === inst.name);
+    if (selectedInst) tr.classList.add('row-selected');
+    tr.dataset.idx = i;
+    tr.addEventListener('click', () => selectRow(i));
+    // Checkbox cell
+    const tdCb = document.createElement('td');
+    tdCb.className = 'px-3 py-3 no-print';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'compare-checkbox w-3.5 h-3.5 accent-eu-blue cursor-pointer';
+    cb.checked = !!selectedInst;
+    cb.addEventListener('change', (e) => { e.stopPropagation(); handleCompareCheck(e.target, i); });
+    tdCb.appendChild(cb); tr.appendChild(tdCb);
+    // Provider
+    const tdProv = document.createElement('td');
+    tdProv.className = 'px-4 py-3';
+    const provWrap = document.createElement('div');
+    provWrap.className = 'flex items-center gap-1.5';
+    const provDot = document.createElement('span');
+    provDot.className = 'w-2 h-2 rounded-sm flex-shrink-0';
+    provDot.style.background = PROVIDER_COLORS[inst.provider] || '#9ca3af';
+    const provText = document.createElement('span');
+    provText.className = 'text-xs font-semibold ' + (inst.sovereign ? 'text-eu-blue' : 'text-gray-400');
+    provText.textContent = inst.provider;
+    provWrap.appendChild(provDot); provWrap.appendChild(provText);
+    tdProv.appendChild(provWrap); tr.appendChild(tdProv);
+    // Instance name
+    const tdName = document.createElement('td');
+    tdName.className = 'px-4 py-3 font-mono text-xs ' + (inst.sovereign ? 'text-gray-900' : 'text-gray-400');
+    tdName.textContent = inst.name;
+    tr.appendChild(tdName);
+    // vCPU
+    const tdCpu = document.createElement('td');
+    tdCpu.className = 'px-4 py-3 text-right text-xs text-gray-600';
+    tdCpu.textContent = inst.cpu || '—';
+    tr.appendChild(tdCpu);
+    // RAM
+    const tdRam = document.createElement('td');
+    tdRam.className = 'px-4 py-3 text-right text-xs text-gray-600';
+    tdRam.textContent = inst.ram ? inst.ram + ' GB' : '—';
+    tr.appendChild(tdRam);
+    // Storage
+    const tdStorage = document.createElement('td');
+    tdStorage.className = 'px-4 py-3 text-right text-xs text-gray-400 hidden sm:table-cell';
+    tdStorage.textContent = inst.storage ? inst.storage + ' GB' : '—';
+    tr.appendChild(tdStorage);
+    // Price
+    const tdPrice = document.createElement('td');
+    tdPrice.className = 'px-4 py-3 text-right';
+    const priceWrap = document.createElement('div');
+    priceWrap.className = 'flex items-center justify-end gap-1.5';
+    if (inst.sovereign && inst.price === cheapestPrice) {
+      const badge = document.createElement('span');
+      badge.className = 'text-[8px] font-bold text-green-600 bg-green-50 px-1 py-0.5 uppercase tracking-wider';
+      badge.textContent = 'BEST';
+      priceWrap.appendChild(badge);
+    }
+    const priceSpan = document.createElement('span');
+    priceSpan.className = 'text-xs font-bold ' + (inst.sovereign ? 'text-eu-blue' : 'text-gray-400');
+    priceSpan.textContent = '€' + inst.price.toFixed(2);
+    priceWrap.appendChild(priceSpan); tdPrice.appendChild(priceWrap);
+    tr.appendChild(tdPrice);
+    // Sovereign
+    const tdSov = document.createElement('td');
+    tdSov.className = 'px-4 py-3 text-center';
+    const icon = document.createElement('i');
+    icon.className = inst.sovereign ? 'fa-solid fa-shield-halved text-green-500 text-sm' : 'fa-solid fa-triangle-exclamation text-gray-300 text-sm';
+    icon.title = inst.sovereign ? 'EU Sovereign' : 'Non-EU / US Cloud Act exposure';
+    tdSov.appendChild(icon); tr.appendChild(tdSov);
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Row selection (detail card) ────────────────────────────────────────────
+function selectRow(idx) {
+  const inst = filtered[idx];
+  if (!inst) return;
+  selectedRowInst = inst;
+  document.querySelectorAll('#table-body tr.table-row').forEach(r => r.classList.remove('row-selected'));
+  const rows = document.querySelectorAll('#table-body tr.table-row');
+  let rowIdx = 0;
+  document.querySelectorAll('#table-body tr.table-row').forEach((r, ri) => {
+    if (parseInt(r.dataset.idx) === idx) r.classList.add('row-selected');
+  });
+  // Populate detail card
+  document.getElementById('dc-name').textContent = inst.provider + ' ' + inst.name;
+  document.getElementById('dc-region').textContent = inst.region;
+  document.getElementById('dc-country').textContent = inst.country;
+  document.getElementById('dc-monthly').textContent = '€' + inst.price.toFixed(2);
+  document.getElementById('dc-hourly').textContent = '€' + inst.hourly.toFixed(4);
+  const box    = document.getElementById('dc-sovereign-box');
+  const icon   = document.getElementById('dc-sovereign-icon');
+  const status = document.getElementById('dc-sovereign-status');
+  const sub    = document.getElementById('dc-sovereign-sub');
+  if (inst.sovereign) {
+    box.className    = 'border border-eu-blue p-3 flex items-center gap-2';
+    icon.className   = 'fa-solid fa-shield-halved text-eu-blue text-sm';
+    status.textContent = 'CERTIFIED';
+    sub.textContent    = 'Complies with EU Data Act 2024';
+  } else {
+    box.className    = 'border border-red-200 bg-red-50 p-3 flex items-center gap-2';
+    icon.className   = 'fa-solid fa-triangle-exclamation text-red-400 text-sm';
+    status.textContent = 'NOT SOVEREIGN';
+    sub.textContent    = 'Exposed to US Cloud Act';
+  }
+  // Config list (DOM-based, no innerHTML)
+  const configEl = document.getElementById('dc-config');
+  while (configEl.firstChild) configEl.removeChild(configEl.firstChild);
+  const configItems = [
+    ['Provider', inst.provider],
+    ['Instance', inst.name],
+  ];
+  if (inst.cpu)     configItems.push(['vCPU',    inst.cpu + ' Core' + (inst.cpu > 1 ? 's' : '')]);
+  if (inst.ram)     configItems.push(['RAM',     inst.ram + ' GB']);
+  if (inst.storage) configItems.push(['Storage', inst.storage + ' GB SSD']);
+  if (inst.storage) configItems.push(['€/GB',    '€' + (inst.price / inst.storage).toFixed(3) + '/mo']);
+  configItems.forEach(([k, v]) => {
+    const li = document.createElement('li');
+    li.className = 'py-2 flex justify-between';
+    const key = document.createElement('span');
+    key.className = 'text-gray-400'; key.textContent = k;
+    const val = document.createElement('span');
+    val.className = 'font-medium text-gray-900'; val.textContent = v;
+    li.appendChild(key); li.appendChild(val);
+    configEl.appendChild(li);
+  });
+  // Terraform snippet
+  document.getElementById('dc-tf-snippet').textContent = generateTerraformSnippet(inst);
+  document.getElementById('detail-card').classList.remove('hidden');
+}
+
+function closeDetail() {
+  document.getElementById('detail-card').classList.add('hidden');
+  document.querySelectorAll('#table-body tr').forEach(r => r.classList.remove('row-selected'));
+  selectedRowInst = null;
+}
+
+// ── Compare selection ──────────────────────────────────────────────────────
+function handleCompareCheck(checkbox, idx) {
+  const inst = filtered[idx];
+  if (!inst) return;
+  if (checkbox.checked) {
+    if (compareSelection.length >= 4) {
+      checkbox.checked = false;
+      showToast('Maximum 4 instances for comparison.', true);
+      return;
+    }
+    compareSelection.push(inst);
+  } else {
+    compareSelection = compareSelection.filter(s => !(s.provider === inst.provider && s.name === inst.name));
+  }
+  updateCompareBar();
+}
+
+function updateCompareBar() {
+  const bar = document.getElementById('compare-bar');
+  const count = compareSelection.length;
+  document.getElementById('compare-count').textContent = count;
+  document.getElementById('compare-bar-count').textContent = count;
+  if (count >= 2) {
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+    if (count === 0) document.getElementById('compare-view').classList.add('hidden');
+  }
+}
+
+function clearCompareSelection() {
+  compareSelection = [];
+  document.querySelectorAll('.compare-checkbox').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('#table-body tr').forEach(r => r.classList.remove('row-selected'));
+  updateCompareBar();
+  document.getElementById('compare-view').classList.add('hidden');
+}
+
+// ── Side-by-side comparison view ───────────────────────────────────────────
+function openCompareView() {
+  renderCompareCards(compareSelection);
+  renderCompareMiniChart(compareSelection);
+  const view = document.getElementById('compare-view');
+  view.classList.remove('hidden');
+  setTimeout(() => view.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+function closeCompareView() {
+  document.getElementById('compare-view').classList.add('hidden');
+}
+
+function renderCompareCards(instances) {
+  const container = document.getElementById('compare-cards');
+  while (container.firstChild) container.removeChild(container.firstChild);
+  const minPrice = Math.min(...instances.map(i => i.price));
+  const maxRam   = Math.max(...instances.map(i => i.ram));
+  const maxCpu   = Math.max(...instances.map(i => i.cpu));
+  instances.forEach(inst => {
+    const card = document.createElement('div');
+    card.className = 'compare-card flex-1 min-w-48 p-5 flex flex-col gap-3';
+    card.style.borderTop = '3px solid ' + (PROVIDER_COLORS[inst.provider] || '#9ca3af');
+    // Provider header
+    const header = document.createElement('div');
+    const provName = document.createElement('div');
+    provName.className = 'text-[10px] font-bold uppercase tracking-widest text-gray-400';
+    provName.textContent = inst.provider;
+    const instName = document.createElement('div');
+    instName.className = 'text-lg font-semibold text-gray-900 font-mono mt-0.5';
+    instName.textContent = inst.name;
+    header.appendChild(provName); header.appendChild(instName);
+    card.appendChild(header);
+    // Badges row
+    const badges = document.createElement('div');
+    badges.className = 'flex flex-wrap gap-1';
+    if (inst.price === minPrice) {
+      const b = document.createElement('span');
+      b.className = 'text-[9px] font-bold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5';
+      b.textContent = 'CHEAPEST'; badges.appendChild(b);
+    }
+    if (inst.ram === maxRam && maxRam > 0) {
+      const b = document.createElement('span');
+      b.className = 'text-[9px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5';
+      b.textContent = 'MOST RAM'; badges.appendChild(b);
+    }
+    if (inst.cpu === maxCpu && maxCpu > 0) {
+      const b = document.createElement('span');
+      b.className = 'text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5';
+      b.textContent = 'MOST CPU'; badges.appendChild(b);
+    }
+    if (inst.sovereign) {
+      const b = document.createElement('span');
+      b.className = 'text-[9px] font-bold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5';
+      b.textContent = '✓ EU'; badges.appendChild(b);
+    } else {
+      const b = document.createElement('span');
+      b.className = 'text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5';
+      b.textContent = 'non-EU'; badges.appendChild(b);
+    }
+    if (badges.firstChild) card.appendChild(badges);
+    // Specs grid
+    const specs = [
+      { label: 'Monthly', value: '€' + inst.price.toFixed(2), big: true },
+      { label: 'Hourly', value: '€' + inst.hourly.toFixed(4) },
+      { label: 'vCPU', value: inst.cpu ? inst.cpu + (inst.cpu > 1 ? ' Cores' : ' Core') : '—' },
+      { label: 'RAM', value: inst.ram ? inst.ram + ' GB' : '—' },
+      { label: 'Storage', value: inst.storage ? inst.storage + ' GB' : '—' },
+      { label: 'Region', value: inst.region },
+    ];
+    const specsDiv = document.createElement('div');
+    specsDiv.className = 'space-y-2';
+    specs.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'flex justify-between items-baseline';
+      const lbl = document.createElement('span');
+      lbl.className = 'text-[10px] text-gray-400';
+      lbl.textContent = s.label;
+      const val = document.createElement('span');
+      val.className = s.big ? 'text-base font-bold text-eu-blue' : 'text-xs font-medium text-gray-700';
+      val.textContent = s.value;
+      row.appendChild(lbl); row.appendChild(val);
+      specsDiv.appendChild(row);
+    });
+    card.appendChild(specsDiv);
+    // TF snippet link
+    const tfRow = document.createElement('div');
+    tfRow.className = 'border-t border-gray-100 pt-3 mt-auto';
+    const tfLabel = document.createElement('div');
+    tfLabel.className = 'text-[9px] text-gray-400 mb-1';
+    tfLabel.textContent = 'Terraform';
+    const tfCode = document.createElement('code');
+    tfCode.className = 'text-[10px] text-eu-blue font-mono';
+    tfCode.textContent = inst.tf;
+    tfRow.appendChild(tfLabel); tfRow.appendChild(tfCode);
+    card.appendChild(tfRow);
+    container.appendChild(card);
+  });
+}
+
+function renderCompareMiniChart(instances) {
+  if (compareChart) { compareChart.destroy(); compareChart = null; }
+  const labels = instances.map(i => i.provider + ' ' + i.name);
+  const vals = instances.map(i => i.price);
+  const colors = instances.map(i => PROVIDER_COLORS[i.provider] || '#9ca3af');
+  compareChart = new Chart(document.getElementById('chart-compare-bar'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' €' + ctx.parsed.x.toFixed(2) + '/mo' } }
+      },
+      scales: {
+        x: { grid: { color: '#f3f4f6' }, ticks: { callback: v => '€' + v, font: { size: 9 }, color: '#9ca3af' } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#374151' } }
+      }
+    }
+  });
+}
+
+// ── Copy TF snippet ────────────────────────────────────────────────────────
+function copyTerraformSnippet() {
+  const text = document.getElementById('dc-tf-snippet').textContent;
+  if (!text) return;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => showToast('Terraform snippet copied!')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.top = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); showToast('Terraform snippet copied!'); }
+  catch { showToast('Copy failed — select manually.', true); }
+  document.body.removeChild(ta);
+}
+
+// ── Add to Calculator ──────────────────────────────────────────────────────
+function addToCalculator() {
+  if (!selectedRowInst) return;
+  const params = new URLSearchParams({
+    provider: selectedRowInst.provider,
+    instance: selectedRowInst.name,
+    price: selectedRowInst.price.toFixed(2)
+  });
+  window.location.href = 'calculator.html?' + params.toString();
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+function exportPDF() {
+  document.getElementById('print-date').textContent = new Date().toLocaleDateString('de-DE',{year:'numeric',month:'long',day:'numeric'});
+  showToast('Opening print dialog...');
+  setTimeout(() => window.print(), 200);
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    authUser = session.user;
+    const { data } = await sb.from('profiles').select('is_pro').eq('id', authUser.id).single();
+    authProfile = data;
+    if (authProfile?.is_pro) document.getElementById('header-pro-badge').classList.remove('hidden');
+  }
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  applyFilters();
+});
+</script>
+</body>
+</html>

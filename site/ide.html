@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src https://pquqtyfezwagzeujweqa.supabase.co https://api.anthropic.com; img-src 'self' data:;">
+<title>EuroOpenCost | Sovereign IDE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'eu-blue':'#0a1945','eu-border':'#e5e7eb','ide-dark':'#1e1e1e','ide-sidebar':'#252526','ide-tabs':'#2d2d2d' },
+        fontFamily: {
+          sans:['Inter','ui-sans-serif','system-ui','sans-serif'],
+          mono:['Fira Code','ui-monospace','SFMono-Regular','Menlo','Monaco','monospace'],
+        },
+      }
+    }
+  }
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+  .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
+  .nav-link:hover { color:#374151; border-color:#d1d5db; }
+  .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+
+  /* IDE-specific */
+  #ide-app { display:none; }
+  #ide-app.visible { display:flex; }
+  .file-tab { border-right:1px solid #1e1e1e; cursor:pointer; user-select:none; }
+  .file-tab:hover { background:#2d2d2d; }
+  .file-tab.active { background:#1e1e1e; border-bottom:1px solid #1e1e1e; margin-bottom:-1px; }
+  .file-tab.dirty::after { content:'●'; margin-left:4px; color:#e5e7eb; font-size:8px; }
+  .tree-item { cursor:pointer; user-select:none; }
+  .tree-item:hover { background:rgba(255,255,255,0.05); }
+  .tree-item.active { background:rgba(10,121,204,0.2); }
+  #mobile-drawer { transform: translateY(100%); transition: transform 0.3s ease; }
+  #mobile-drawer.open { transform: translateY(0); }
+  .cost-hint { color: #10b981 !important; font-style: italic; }
+  kbd { display:inline-block; padding:1px 6px; background:#1e1e1e; border:1px solid #555; border-radius:3px; font-family:monospace; font-size:10px; color:#ccc; }
+  /* Terminal */
+  #terminal-output .t-out  { color:#d4d4d4; }
+  #terminal-output .t-err  { color:#f97583; }
+  #terminal-output .t-ok   { color:#10b981; }
+  #terminal-output .t-info { color:#79c0ff; }
+  #terminal-output .t-cmd  { color:#10b981; }
+  #terminal-output .t-dim  { color:#6b7280; }
+  #terminal-panel { resize:none; }
+  /* AI chat */
+  .ai-bubble-user { background:#eff6ff; border:1px solid #dbeafe; margin-left:16px; }
+  .ai-bubble-assistant { background:#f9fafb; border:1px solid #e5e7eb; margin-right:16px; }
+  .ai-tab-btn.active { border-bottom:2px solid #007acc; color:#e2e8f0; }
+  .ai-tab-btn { border-bottom:2px solid transparent; color:#6b7280; transition:all 0.15s; }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Monaco: start downloading immediately, parallel to auth check -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+<script>
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+  window.__monacoReady = new Promise(function(resolve) { require(['vs/editor/editor.main'], resolve); });
+</script>
+</head>
+<body class="h-full overflow-hidden flex flex-col text-gray-800 font-sans antialiased bg-[#f8f9fa]">
+
+<!-- ─── Nav header ──────────────────────────────────────────────────────── -->
+<header class="flex-shrink-0 bg-white/90 backdrop-blur-sm border-b border-eu-border z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-14">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="audit.html" class="nav-link">Audit Engine <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="policies.html" class="nav-link">Sovereign Policies <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="treasury.html" class="nav-link">Treasury <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="ide.html" class="nav-link active">Web IDE <span id="nav-ide-lock" class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <a href="index.html#settings" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" style="text-decoration:none;"><i class="fa-solid fa-gear text-sm"></i></a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1"><i class="fa-solid fa-bars text-lg"></i></button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ─── Gate (non-Pro) ──────────────────────────────────────────────────── -->
+<div id="ide-gate" class="flex-1 flex flex-col items-center justify-center bg-[#f8f9fa]">
+  <div class="bg-white border border-eu-border shadow-sm p-12 text-center max-w-md">
+    <i class="fa-solid fa-code text-4xl text-eu-blue mb-4 block"></i>
+    <h2 class="text-xl font-normal text-gray-900 mb-2">Sovereign Web IDE</h2>
+    <p class="text-sm text-gray-500 mb-6">Edit Terraform HCL directly in the browser with live cost analysis and EU sovereignty scoring.</p>
+    <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-5">
+      <i class="fa-solid fa-lock text-yellow-500 mr-2"></i> PREMIUM ACCESS REQUIRED <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+    </p>
+    <a href="index.html#settings" class="bg-eu-blue text-white px-8 py-2.5 text-sm font-medium hover:bg-blue-900 transition-colors" style="text-decoration:none;">UPGRADE TO PRO</a>
+  </div>
+</div>
+
+<!-- ─── IDE App (full-screen, shown when Pro) ───────────────────────────── -->
+<div id="ide-app" class="flex-1 flex-col overflow-hidden min-h-0">
+
+  <!-- Tab bar (like VS Code) -->
+  <div class="flex-shrink-0 bg-[#2d2d2d] border-b border-[#1e1e1e] flex items-stretch h-9" style="min-height:36px">
+    <!-- File tabs -->
+    <div id="file-tabs" class="flex overflow-x-auto flex-1 items-stretch scrollbar-none" style="scrollbar-width:none"></div>
+    <!-- Toolbar actions (right side) -->
+    <div class="flex items-center gap-1 px-2 border-l border-[#1e1e1e] flex-shrink-0">
+      <label title="Upload .tf file" class="file-tab flex items-center gap-1.5 px-2.5 h-full text-gray-400 hover:text-white hover:bg-[#3c3c3c] cursor-pointer text-[11px]">
+        <i class="fa-solid fa-upload text-[10px]"></i>
+        <span class="hidden sm:inline">Upload</span>
+        <input id="ide-file-input" type="file" accept=".tf,.hcl" multiple class="hidden" onchange="handleUpload(event)"/>
+      </label>
+      <button onclick="newFile()" title="New file (Ctrl+N)" class="flex items-center gap-1.5 px-2.5 h-full text-gray-400 hover:text-white hover:bg-[#3c3c3c] text-[11px]">
+        <i class="fa-solid fa-plus text-[10px]"></i>
+        <span class="hidden sm:inline">New</span>
+      </button>
+      <button onclick="downloadCurrentFile()" title="Download file (Ctrl+S)" class="flex items-center gap-1.5 px-2.5 h-full text-gray-400 hover:text-white hover:bg-[#3c3c3c] text-[11px]">
+        <i class="fa-solid fa-floppy-disk text-[10px]"></i>
+        <span class="hidden sm:inline">Save</span>
+      </button>
+      <div class="w-px bg-[#1e1e1e] self-stretch mx-0.5"></div>
+      <button onclick="runAnalysis()" title="Analyze costs (Ctrl+Enter)" class="flex items-center gap-1.5 px-3 h-full bg-[#007acc] hover:bg-[#0062a3] text-white text-[11px] font-medium">
+        <i class="fa-solid fa-bolt text-[10px]"></i> Analyze
+      </button>
+      <button onclick="toggleTerminal()" title="Toggle Terminal (Ctrl+`)" class="flex items-center gap-1.5 px-2.5 h-full text-gray-400 hover:text-white hover:bg-[#3c3c3c] text-[11px]">
+        <i class="fa-solid fa-terminal text-[10px]"></i>
+        <span class="hidden sm:inline">Terminal</span>
+      </button>
+      <button onclick="switchIDEPanel('ai')" title="AI Assistant" class="flex items-center gap-1.5 px-2.5 h-full text-purple-400 hover:text-purple-200 hover:bg-[#3c3c3c] text-[11px]">
+        <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
+        <span class="hidden sm:inline">AI</span>
+      </button>
+      <button onclick="toggleMobileDrawer()" title="Cost panel" class="md:hidden flex items-center gap-1 px-2 h-full text-gray-400 hover:text-white hover:bg-[#3c3c3c] text-[11px] ml-0.5">
+        <i class="fa-solid fa-chart-bar text-[10px]"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- IDE Body (flex-col: panels row + terminal) -->
+  <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+  <!-- Panels row -->
+  <div id="ide-panels" class="flex-1 flex overflow-hidden min-h-0">
+
+    <!-- ─ File Explorer (left sidebar, desktop only) ─ -->
+    <div class="hidden md:flex w-48 flex-shrink-0 bg-[#252526] flex-col border-r border-[#1e1e1e] min-h-0">
+      <div class="flex-shrink-0 px-3 py-1.5 flex items-center justify-between border-b border-[#1e1e1e]">
+        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Explorer</span>
+      </div>
+      <div id="file-tree" class="flex-1 overflow-y-auto py-1 min-h-0"></div>
+      <!-- Quick stats -->
+      <div class="flex-shrink-0 border-t border-[#1e1e1e] px-3 py-2.5 space-y-1.5">
+        <div class="flex justify-between items-center">
+          <span class="text-[9px] text-gray-500 uppercase tracking-widest">Score</span>
+          <span id="sidebar-score" class="text-[10px] font-bold text-green-400 font-mono">—</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-[9px] text-gray-500 uppercase tracking-widest">Monthly</span>
+          <span id="sidebar-monthly" class="text-[10px] font-bold text-gray-300 font-mono">—</span>
+        </div>
+        <div id="sidebar-alerts-row" class="hidden flex justify-between items-center">
+          <span class="text-[9px] text-red-400 uppercase tracking-widest">Alerts</span>
+          <span id="sidebar-alerts-count" class="text-[10px] font-bold text-red-400 font-mono">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Monaco Editor ─ -->
+    <div class="flex-1 relative overflow-hidden bg-[#1e1e1e] min-w-0">
+      <div id="monaco-container" class="absolute inset-0"></div>
+      <!-- Cost overlay badge (top right) -->
+      <div id="cost-overlay" class="hidden absolute top-3 right-3 bg-black/75 text-green-400 text-[11px] font-mono px-3 py-1.5 pointer-events-none backdrop-blur-sm z-10 flex items-center gap-2">
+        <i class="fa-solid fa-bolt text-[9px]"></i>
+        <span id="cost-overlay-text"></span>
+      </div>
+      <!-- Loading state -->
+      <div id="ide-loading" class="absolute inset-0 flex items-center justify-center bg-[#1e1e1e] z-20">
+        <div class="text-center">
+          <div class="text-gray-500 text-sm font-mono mb-3">Initializing Monaco Editor...</div>
+          <div class="w-32 h-px bg-gray-800 overflow-hidden mx-auto">
+            <div class="h-full w-1/2 bg-[#007acc] animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Right Panel: Cost Analysis + AI (tabbed, desktop only) ─ -->
+    <div class="hidden md:flex w-72 flex-shrink-0 bg-white border-l border-eu-border flex-col min-h-0">
+      <!-- Tab bar -->
+      <div class="flex-shrink-0 border-b border-eu-border bg-[#2d2d2d] flex items-stretch" style="min-height:32px">
+        <button id="tab-btn-cost" onclick="switchIDEPanel('cost')" class="ai-tab-btn active flex items-center gap-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider">
+          <i class="fa-solid fa-bolt text-[9px]"></i> Cost
+        </button>
+        <button id="tab-btn-ai" onclick="switchIDEPanel('ai')" class="ai-tab-btn flex items-center gap-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-purple-400 hover:text-purple-200">
+          <i class="fa-solid fa-wand-magic-sparkles text-[9px]"></i> AI
+        </button>
+        <span id="cost-panel-badge" class="hidden self-center ml-auto mr-3 text-[9px] font-bold px-1.5 py-0.5 bg-green-50 text-green-700">LIVE</span>
+      </div>
+      <!-- Cost tab -->
+      <div id="panel-cost" class="flex-1 overflow-y-auto p-4 text-xs min-h-0">
+        <div id="ide-cost-panel" class="h-full">
+          <div class="text-center mt-16">
+            <i class="fa-solid fa-bolt text-gray-200 text-3xl block mb-3"></i>
+            <p class="text-gray-400 text-sm font-medium mb-1">Ready to analyze</p>
+            <p class="text-gray-400 text-xs">Click <strong>Analyze</strong> or press</p>
+            <div class="mt-2"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></div>
+          </div>
+        </div>
+      </div>
+      <!-- AI tab -->
+      <div id="panel-ai" class="hidden flex-col flex-1 min-h-0">
+        <!-- API key settings -->
+        <div class="flex-shrink-0 border-b border-eu-border px-3 py-2 bg-gray-50">
+          <details id="ai-settings-details">
+            <summary class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider cursor-pointer select-none">API Key Settings</summary>
+            <div class="mt-2 space-y-1.5">
+              <input id="ai-api-key" type="password" class="w-full text-[11px] border border-gray-200 px-2 py-1.5 font-mono focus:outline-none focus:border-eu-blue" placeholder="sk-ant-api03-..."/>
+              <p class="text-[9px] text-gray-400">Stored in sessionStorage only. Never persisted.</p>
+              <button onclick="saveApiKey()" class="w-full bg-eu-blue text-white text-[10px] py-1.5 font-medium uppercase tracking-wider hover:bg-blue-900">Save Key</button>
+            </div>
+          </details>
+        </div>
+        <!-- Chat messages -->
+        <div id="ai-messages" class="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 text-xs"></div>
+        <!-- Suggested prompts -->
+        <div class="flex-shrink-0 px-3 py-2 border-t border-gray-100 flex flex-wrap gap-1.5">
+          <button onclick="sendAIMessage('How can I reduce costs?')" class="text-[9px] border border-gray-200 text-gray-500 px-2 py-1 hover:bg-gray-50 transition-colors">Reduce costs?</button>
+          <button onclick="sendAIMessage('Is this EU-sovereign?')" class="text-[9px] border border-gray-200 text-gray-500 px-2 py-1 hover:bg-gray-50 transition-colors">EU sovereign?</button>
+          <button onclick="sendAIMessage('Generate Terraform for a Hetzner Kubernetes cluster')" class="text-[9px] border border-gray-200 text-gray-500 px-2 py-1 hover:bg-gray-50 transition-colors">Hetzner k8s TF</button>
+          <button onclick="sendAIMessage('Optimize this for lowest EU cost')" class="text-[9px] border border-gray-200 text-gray-500 px-2 py-1 hover:bg-gray-50 transition-colors">Optimize EU cost</button>
+        </div>
+        <!-- Input -->
+        <div class="flex-shrink-0 border-t border-eu-border p-3">
+          <div class="flex gap-2">
+            <input id="ai-input" type="text" class="flex-1 text-xs border border-gray-200 px-3 py-2 focus:outline-none focus:border-eu-blue" placeholder="Ask about your Terraform..." onkeydown="if(event.key==='Enter')sendAIMessage()"/>
+            <button onclick="sendAIMessage()" class="bg-eu-blue text-white px-3 py-2 text-[10px] hover:bg-blue-900 transition-colors flex-shrink-0">
+              <i class="fa-solid fa-paper-plane text-[10px]"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /ide-panels -->
+
+  <!-- ─ Terminal resize handle ─ -->
+  <div id="terminal-resize-handle" class="hidden flex-shrink-0 h-1.5 bg-[#2d2d2d] border-t border-[#1e1e1e] cursor-row-resize hover:bg-[#007acc] transition-colors select-none" style="min-height:6px"></div>
+
+  <!-- ─ Terminal Panel ─ -->
+  <div id="terminal-panel" class="hidden flex-shrink-0 flex-col bg-[#1e1e1e] border-t border-[#1e1e1e]" style="height:220px;min-height:80px;max-height:60vh">
+    <!-- Terminal tab bar -->
+    <div class="flex-shrink-0 flex items-center h-8 bg-[#2d2d2d] border-b border-[#1e1e1e] px-2 gap-1 select-none">
+      <span class="text-[10px] text-gray-300 font-mono font-semibold px-2 py-1 bg-[#1e1e1e] border-b-2 border-[#007acc]">TERMINAL</span>
+      <span class="flex-1"></span>
+      <button onclick="termClear()" class="text-gray-500 hover:text-gray-300 text-[10px] px-2 py-1 font-mono transition-colors" title="Clear">clear</button>
+      <button onclick="toggleTerminal()" class="text-gray-500 hover:text-gray-300 px-1.5 py-1 hover:bg-[#3c3c3c] transition-colors ml-1" title="Close terminal">
+        <i class="fa-solid fa-xmark text-[10px]"></i>
+      </button>
+    </div>
+    <!-- Output -->
+    <div id="terminal-output" class="flex-1 overflow-y-auto px-4 py-2 font-mono text-[12px] leading-[1.6]" style="min-height:0"></div>
+    <!-- Input row -->
+    <div class="flex-shrink-0 flex items-center border-t border-[#333] bg-[#1e1e1e] px-4 py-2">
+      <span class="text-[#10b981] font-mono text-[12px] mr-2 select-none flex-shrink-0">eucost@ide:~$</span>
+      <input id="terminal-input" type="text" autocomplete="off" spellcheck="false"
+             class="flex-1 bg-transparent text-gray-200 font-mono text-[12px] outline-none border-none"
+             placeholder="type a command or 'help'..."/>
+    </div>
+  </div>
+
+  </div><!-- /ide-body flex-col -->
+
+  <!-- ─ VS Code Status Bar ─ -->
+  <div class="flex-shrink-0 h-6 bg-[#007acc] text-white flex items-center px-3 gap-3 text-[11px] font-mono select-none" style="min-height:24px">
+    <span class="flex items-center gap-1.5 opacity-80"><i class="fa-solid fa-code-branch text-[9px]"></i> eucost</span>
+    <span id="status-file" class="opacity-90">main.tf</span>
+    <span class="flex-1"></span>
+    <span id="status-pos" class="opacity-80">Ln 1, Col 1</span>
+    <span class="opacity-70">HCL</span>
+    <span class="opacity-70">UTF-8</span>
+    <span id="status-analysis" class="opacity-80">⚡ Ready</span>
+    <button onclick="toggleTerminal()" class="opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1 px-2 hover:bg-[#0062a3] h-full" title="Toggle Terminal (Ctrl+\`)">
+      <i class="fa-solid fa-terminal text-[9px]"></i>
+      <span class="text-[10px]">Terminal</span>
+    </button>
+  </div>
+</div>
+
+<!-- ─── Mobile Cost Drawer ──────────────────────────────────────────────── -->
+<div id="mobile-drawer" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-[#007acc] z-50 flex flex-col" style="max-height:60vh">
+  <div class="flex-shrink-0 flex justify-between items-center px-4 py-2.5 border-b border-eu-border">
+    <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Cost Analysis</span>
+    <button onclick="toggleMobileDrawer()" class="text-gray-400 hover:text-gray-700 text-sm">
+      <i class="fa-solid fa-chevron-down"></i>
+    </button>
+  </div>
+  <div id="mobile-cost-panel" class="flex-1 overflow-y-auto p-4 text-xs">
+    <p class="text-gray-400 text-center py-4">Press <strong>Analyze</strong> to see costs.</p>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://pquqtyfezwagzeujweqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdXF0eWZlendhZ3pldWp3ZXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTk5ODIsImV4cCI6MjA5MDE3NTk4Mn0.SP8ZvG64595-IflvEhZTodWVzGJYoqszfj1zlRGR66M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let authUser = null, authProfile = null;
+function isPro() { return authProfile?.is_pro === true; }
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt2(n) { return Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt4(n) { return Number(n||0).toFixed(4); }
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast'), m = document.getElementById('toast-msg');
+  if (!t||!m) return;
+  m.textContent = msg;
+  t.className = 'fixed bottom-12 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none '+(isError?'bg-red-600':'bg-eu-blue');
+  t.style.opacity = '1'; setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
+
+// ── HCL Price Database ────────────────────────────────────────────────────
+const HCL_DB = {
+  // Hetzner
+  hcloud_server: {
+    cx11:{m:3.79,h:0.0053,s:true,l:'Hetzner CX11'}, cx21:{m:5.83,h:0.0081,s:true,l:'Hetzner CX21'},
+    cx31:{m:10.59,h:0.0147,s:true,l:'Hetzner CX31'}, cx41:{m:19.55,h:0.0271,s:true,l:'Hetzner CX41'},
+    cx51:{m:37.09,h:0.0515,s:true,l:'Hetzner CX51'}, cpx11:{m:4.35,h:0.0060,s:true,l:'Hetzner CPX11'},
+    cpx21:{m:7.55,h:0.0105,s:true,l:'Hetzner CPX21'}, cpx31:{m:13.09,h:0.0182,s:true,l:'Hetzner CPX31'},
+    cpx41:{m:24.49,h:0.034,s:true,l:'Hetzner CPX41'}, cax11:{m:3.79,h:0.0053,s:true,l:'Hetzner CAX11'},
+    cax21:{m:6.49,h:0.009,s:true,l:'Hetzner CAX21'}, cax31:{m:12.49,h:0.0174,s:true,l:'Hetzner CAX31'},
+    _:{m:5.83,h:0.0081,s:true,l:'Hetzner Server'},
+  },
+  hcloud_volume: { _:{m:0.0476,h:0,s:true,l:'Hetzner Volume',g:1} },
+  hcloud_load_balancer: {
+    lb11:{m:5.39,h:0.0075,s:true,l:'Hetzner LB11'}, lb21:{m:10.59,h:0.0147,s:true,l:'Hetzner LB21'},
+    lb31:{m:23.59,h:0.0327,s:true,l:'Hetzner LB31'}, _:{m:5.39,h:0.0075,s:true,l:'Hetzner LB'},
+  },
+  hcloud_floating_ip: { _:{m:1.19,h:0.0017,s:true,l:'Hetzner Floating IP'} },
+  hcloud_primary_ip: { _:{m:0.0,h:0,s:true,l:'Hetzner Primary IP'} },
+  hcloud_firewall: { _:{m:0,h:0,s:true,l:'Hetzner Firewall'} },
+  hcloud_network: { _:{m:0,h:0,s:true,l:'Hetzner Network'} },
+  // OVH
+  ovh_cloud_project_instance: {
+    's1-2':{m:3.50,h:0.0049,s:true,l:'OVH s1-2'}, 's1-4':{m:7.00,h:0.0097,s:true,l:'OVH s1-4'},
+    's1-8':{m:14.00,h:0.0194,s:true,l:'OVH s1-8'}, 'b2-7':{m:22.40,h:0.0311,s:true,l:'OVH b2-7'},
+    'b2-15':{m:44.80,h:0.0622,s:true,l:'OVH b2-15'}, _:{m:7.00,h:0.0097,s:true,l:'OVH Instance'},
+  },
+  // IONOS
+  ionoscloud_server: { _:{m:10.30,h:0.0143,s:true,l:'IONOS Server'} },
+  ionoscloud_volume: { _:{m:0.08,h:0,s:true,l:'IONOS Volume',g:1} },
+  ionoscloud_ipblock: { _:{m:1.50,h:0.0021,s:true,l:'IONOS IP Block'} },
+  // STACKIT
+  stackit_server: { _:{m:1.10,h:0.0015,s:true,l:'STACKIT Server'} },
+  stackit_volume: { _:{m:0.044,h:0,s:true,l:'STACKIT Volume',g:1} },
+  // Scaleway
+  scaleway_instance_server: {
+    'DEV1-S':{m:2.99,h:0.0042,s:true,l:'Scaleway DEV1-S'}, 'DEV1-M':{m:5.99,h:0.0083,s:true,l:'Scaleway DEV1-M'},
+    'DEV1-L':{m:11.99,h:0.0166,s:true,l:'Scaleway DEV1-L'}, 'GP1-XS':{m:14.99,h:0.0208,s:true,l:'Scaleway GP1-XS'},
+    'GP1-S':{m:29.99,h:0.0417,s:true,l:'Scaleway GP1-S'}, _:{m:5.99,h:0.0083,s:true,l:'Scaleway Instance'},
+  },
+  scaleway_block_snapshot: { _:{m:0.04,h:0,s:true,l:'Scaleway Block',g:1} },
+  // OTC
+  opentelekomcloud_compute_instance_v2: {
+    's3.small.1':{m:6.5,h:0.009,s:true,l:'OTC ECS s3.small.1'},
+    's3.medium.4':{m:38.09,h:0.0529,s:true,l:'OTC ECS s3.medium.4'},
+    's3.large.2':{m:25,h:0.0347,s:true,l:'OTC ECS s3.large.2'},
+    's3.xlarge.4':{m:76.18,h:0.1058,s:true,l:'OTC ECS s3.xlarge.4'},
+    _:{m:25,h:0.0347,s:true,l:'OTC ECS Instance'},
+  },
+  opentelekomcloud_blockstorage_volume_v2: { _:{m:0.05,h:0,s:true,l:'OTC EVS Volume',g:1} },
+  opentelekomcloud_vpc_eip_v1: { _:{m:3.17,h:0.0044,s:true,l:'OTC EIP'} },
+  opentelekomcloud_lb_loadbalancer_v2: { _:{m:16,h:0.0222,s:true,l:'OTC ELB'} },
+  opentelekomcloud_rds_instance_v3: { _:{m:54,h:0.075,s:true,l:'OTC RDS'} },
+  opentelekomcloud_obs_bucket: { _:{m:2,h:0.0028,s:true,l:'OTC OBS'} },
+  opentelekomcloud_nat_gateway_v2: { _:{m:4.5,h:0.00625,s:true,l:'OTC NAT'} },
+  // AWS (non-EU)
+  aws_instance: { _:{m:30,h:0.0417,s:false,l:'AWS EC2'} },
+  aws_s3_bucket: { _:{m:2,h:0,s:false,l:'AWS S3'} },
+  aws_db_instance: { _:{m:25,h:0.0347,s:false,l:'AWS RDS'} },
+  aws_eks_cluster: { _:{m:72,h:0.10,s:false,l:'AWS EKS'} },
+  // GCP (non-EU)
+  google_compute_instance: { _:{m:27.45,h:0.0381,s:false,l:'GCP Compute'} },
+  google_sql_database_instance: { _:{m:30,h:0.0417,s:false,l:'GCP Cloud SQL'} },
+  // Azure (non-EU)
+  azurerm_linux_virtual_machine: { _:{m:32,h:0.0444,s:false,l:'Azure Linux VM'} },
+  azurerm_windows_virtual_machine: { _:{m:40,h:0.0556,s:false,l:'Azure Windows VM'} },
+  azurerm_sql_server: { _:{m:50,h:0.0694,s:false,l:'Azure SQL Server'} },
+};
+
+// ── HCL Parser ────────────────────────────────────────────────────────────
+function parseHCL(code) {
+  const resources = [];
+  const blockRe = /resource\s+"([^"]+)"\s+"([^"]+)"\s*\{([\s\S]*?)\n\}/gm;
+  let m;
+  while ((m = blockRe.exec(code)) !== null) {
+    const type = m[1], name = m[2], body = m[3];
+    const db = HCL_DB[type]; if (!db) continue;
+    const attrs = {};
+    const strRe = /(\w+)\s*=\s*"([^"]*)"/g;
+    const numRe = /(\w+)\s*=\s*(\d+(?:\.\d+)?)/g;
+    let kv;
+    while ((kv = strRe.exec(body)) !== null) attrs[kv[1]] = kv[2];
+    while ((kv = numRe.exec(body)) !== null) if (!(kv[1] in attrs)) attrs[kv[1]] = kv[2];
+    const key = (attrs.server_type||attrs.flavor_name||attrs.machine_type||attrs.instance_type||attrs.load_balancer_type||attrs.type||'').toLowerCase();
+    const entry = db[key] || db['_']; if (!entry) continue;
+    let monthly = entry.m, hourly = entry.h;
+    if (entry.g) { const gb = parseFloat(attrs.size)||50; monthly = entry.m * gb; hourly = entry.h * gb; }
+    resources.push({
+      name: type + '.' + name,
+      type, display_type: entry.l || type,
+      monthly_price: monthly.toFixed(2),
+      hourly_price: hourly.toFixed(4),
+      sovereign: !!entry.s,
+      provider: entry.s ? 'eu' : 'non-eu',
+      _line: code.substring(0, m.index).split('\n').length,
+    });
+  }
+  return resources;
+}
+
+function analyzeHCL(code) {
+  const resources = parseHCL(code);
+  if (!resources.length) return null;
+  const totalM = resources.reduce((s,r) => s + parseFloat(r.monthly_price), 0);
+  const totalH = resources.reduce((s,r) => s + parseFloat(r.hourly_price), 0);
+  const sovCount = resources.filter(r => r.sovereign).length;
+  const score = Math.round((sovCount / resources.length) * 100);
+  const alerts = resources.filter(r => !r.sovereign).map(r => r.name + ' — non-EU provider');
+  return { resources, totals: { monthly: totalM, hourly: totalH }, score, alerts };
+}
+
+// ── Cost panel renderer ───────────────────────────────────────────────────
+function renderCostPanel(data, elId) {
+  const el = document.getElementById(elId); if (!el) return;
+  const res = data.resources || [], tot = data.totals || {}, al = data.alerts || [];
+  const scoreColor = data.score >= 80 ? 'text-green-600' : data.score >= 50 ? 'text-yellow-600' : 'text-red-600';
+  el.innerHTML = `
+    <div class="mb-5">
+      <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Monthly Total</p>
+      <p class="text-2xl font-bold text-eu-blue tabular-nums font-mono">€ ${fmt2(tot.monthly||0)}</p>
+      <p class="text-[10px] text-gray-400 mt-0.5 font-mono">€ ${fmt4(tot.hourly||0)} / hour</p>
+    </div>
+    <div class="mb-5">
+      <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sovereign Score</p>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 h-2 bg-gray-100 rounded overflow-hidden">
+          <div class="h-full transition-all duration-500 ${data.score>=80?'bg-green-500':data.score>=50?'bg-yellow-500':'bg-red-500'}" style="width:${data.score||0}%"></div>
+        </div>
+        <span class="text-sm font-bold ${scoreColor}">${data.score||0}%</span>
+      </div>
+    </div>
+    ${al.length ? `
+    <div class="mb-5 border border-red-200 bg-red-50 p-3 space-y-1.5">
+      <p class="text-[9px] font-bold text-red-600 uppercase tracking-widest">Alerts (${al.length})</p>
+      ${al.map(a=>`<p class="text-[11px] text-red-600 flex items-start gap-1.5"><i class="fa-solid fa-triangle-exclamation mt-0.5 flex-shrink-0"></i>${escHtml(a)}</p>`).join('')}
+    </div>` : `
+    <div class="mb-5 border border-green-200 bg-green-50 p-3">
+      <p class="text-[11px] text-green-700 flex items-center gap-1.5"><i class="fa-solid fa-shield-halved"></i> All resources are EU-sovereign</p>
+    </div>`}
+    <div>
+      <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Resources (${res.length})</p>
+      <div class="space-y-1.5">
+        ${res.map(r=>`
+          <div class="border border-gray-100 bg-gray-50 p-2.5 hover:border-eu-border transition-colors">
+            <div class="flex justify-between items-start gap-1 mb-0.5">
+              <p class="text-[11px] font-semibold text-eu-blue truncate flex-1 font-mono">${escHtml(r.name)}</p>
+              <p class="text-[11px] font-bold text-eu-blue flex-shrink-0 font-mono">€${r.monthly_price}/mo</p>
+            </div>
+            <div class="flex justify-between items-center">
+              <p class="text-[10px] text-gray-400">${escHtml(r.display_type)}</p>
+              ${r.sovereign
+                ? '<span class="text-[9px] text-green-600 font-medium flex items-center gap-0.5"><i class="fa-solid fa-shield-halved text-[8px]"></i> EU</span>'
+                : '<span class="text-[9px] text-amber-500 font-medium flex items-center gap-0.5"><i class="fa-solid fa-triangle-exclamation text-[8px]"></i> non-EU</span>'}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="mt-4 pt-4 border-t border-gray-100">
+      <button onclick="saveToHistory()" class="w-full bg-eu-blue text-white py-2 text-[10px] font-medium uppercase tracking-widest hover:bg-blue-900 transition-colors">
+        <i class="fa-solid fa-floppy-disk mr-1.5"></i> Save to Treasury
+      </button>
+    </div>`;
+}
+
+// ── File management ───────────────────────────────────────────────────────
+const state = {
+  files: [],
+  activeIdx: 0,
+  monacoLoaded: false,
+  editor: null,
+  decorations: [],
+  lastAnalysis: null,
+};
+
+const DEFAULT_TF = `# EuroOpenCost Sovereign IDE
+# Edit Terraform HCL — live cost analysis updates as you type
+# Press Ctrl+Enter or click Analyze to run
+
+terraform {
+  required_providers {
+    hcloud = {
+      source  = "hetznercloud/hcloud"
+      version = "~> 1.44"
+    }
+  }
+}
+
+resource "hcloud_server" "web" {
+  name        = "web-01"
+  server_type = "cx21"
+  image       = "ubuntu-22.04"
+  location    = "fsn1"
+}
+
+resource "hcloud_volume" "data" {
+  name     = "data-vol"
+  size     = 100
+  location = "fsn1"
+}
+
+resource "hcloud_load_balancer" "lb" {
+  name               = "web-lb"
+  load_balancer_type = "lb11"
+  location           = "fsn1"
+}
+`;
+
+function addFile(name, content) {
+  state.files.push({ name, content, dirty: false });
+  setActiveFile(state.files.length - 1);
+}
+
+function newFile() {
+  const n = 'file-' + (state.files.length + 1) + '.tf';
+  addFile(n, '# New Terraform file\n\n');
+}
+
+function setActiveFile(idx) {
+  if (state.files[state.activeIdx]) {
+    state.files[state.activeIdx].content = state.editor ? state.editor.getValue() : state.files[state.activeIdx].content;
+  }
+  state.activeIdx = Math.max(0, Math.min(idx, state.files.length - 1));
+  if (state.editor && state.files[state.activeIdx]) {
+    state.editor.setValue(state.files[state.activeIdx].content);
+    state.editor.setScrollPosition({ scrollTop: 0 });
+    state.files[state.activeIdx].dirty = false;
+  }
+  renderFileTabs();
+  renderFileTree();
+  updateStatusFile();
+}
+
+function renderFileTabs() {
+  const el = document.getElementById('file-tabs'); if (!el) return;
+  el.innerHTML = state.files.map((f, i) => `
+    <div class="file-tab flex items-center gap-2 px-4 h-full text-[11px] font-mono select-none ${i===state.activeIdx?'active text-gray-200':'text-gray-500'} ${f.dirty?'dirty':''}"
+         onclick="setActiveFile(${i})" title="${escHtml(f.name)}">
+      <i class="fa-solid fa-file-code text-[9px] ${i===state.activeIdx?'text-[#007acc]':'text-gray-600'}"></i>
+      <span class="max-w-24 truncate">${escHtml(f.name)}</span>
+      ${state.files.length > 1 ? `<button onclick="event.stopPropagation();closeFile(${i})" class="text-gray-600 hover:text-gray-200 ml-1 text-[10px]">✕</button>` : ''}
+    </div>`).join('');
+}
+
+function renderFileTree() {
+  const el = document.getElementById('file-tree'); if (!el) return;
+  if (!state.files.length) { el.innerHTML = '<p class="text-[10px] text-gray-600 px-3 py-2">No files open</p>'; return; }
+  el.innerHTML = state.files.map((f, i) => `
+    <div class="tree-item flex items-center gap-2 px-3 py-1.5 ${i===state.activeIdx?'active':''}" onclick="setActiveFile(${i})">
+      <i class="fa-solid fa-file-code text-[11px] ${i===state.activeIdx?'text-[#007acc]':'text-gray-500'}"></i>
+      <span class="text-[11px] font-mono truncate ${i===state.activeIdx?'text-white':'text-gray-400'}">${escHtml(f.name)}</span>
+      ${f.dirty ? '<span class="text-[8px] text-gray-400 ml-auto flex-shrink-0">●</span>' : ''}
+    </div>`).join('');
+}
+
+function closeFile(idx) {
+  if (state.files.length === 1) return;
+  state.files.splice(idx, 1);
+  state.activeIdx = Math.max(0, Math.min(state.activeIdx, state.files.length - 1));
+  if (state.editor) state.editor.setValue(state.files[state.activeIdx]?.content || '');
+  renderFileTabs(); renderFileTree();
+}
+
+function handleUpload(event) {
+  Array.from(event.target.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      addFile(file.name, e.target.result);
+      showToast(file.name + ' loaded.');
+    };
+    reader.readAsText(file);
+  });
+  event.target.value = '';
+}
+
+function downloadCurrentFile() {
+  const f = state.files[state.activeIdx]; if (!f) return;
+  const content = state.editor ? state.editor.getValue() : f.content;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
+  a.download = f.name; a.click(); URL.revokeObjectURL(a.href);
+  showToast(f.name + ' downloaded.');
+}
+
+function saveToHistory() {
+  if (!state.lastAnalysis) { showToast('Run analysis first.', true); return; }
+  const entry = {
+    id: Date.now(),
+    date: new Date().toLocaleString('de-DE'),
+    resources: state.lastAnalysis.resources.length,
+    monthly: state.lastAnalysis.totals.monthly,
+    score: state.lastAnalysis.score,
+    data: state.lastAnalysis,
+  };
+  const history = JSON.parse(localStorage.getItem('eucost_history') || '[]');
+  history.unshift(entry);
+  if (history.length > 20) history.length = 20;
+  localStorage.setItem('eucost_history', JSON.stringify(history));
+  showToast('Saved to Treasury & Reporting.');
+}
+
+function updateStatusFile() {
+  const f = state.files[state.activeIdx];
+  const el = document.getElementById('status-file');
+  if (el && f) el.textContent = f.name;
+}
+
+// ── Analysis ──────────────────────────────────────────────────────────────
+function runAnalysis() {
+  const code = state.editor ? state.editor.getValue() : '';
+  const data = analyzeHCL(code);
+  if (!data) { showToast('No recognized Terraform resources found.', true); return; }
+  state.lastAnalysis = data;
+
+  renderCostPanel(data, 'ide-cost-panel');
+  renderCostPanel(data, 'mobile-cost-panel');
+
+  // Update overlay
+  const ov = document.getElementById('cost-overlay');
+  const ot = document.getElementById('cost-overlay-text');
+  if (ov && ot) {
+    ot.textContent = '€' + fmt2(data.totals.monthly) + '/mo · ' + data.score + '% sovereign';
+    ov.classList.remove('hidden');
+  }
+
+  // Update sidebar stats
+  document.getElementById('sidebar-score').textContent = data.score + '%';
+  document.getElementById('sidebar-monthly').textContent = '€' + fmt2(data.totals.monthly);
+  const alertsRow = document.getElementById('sidebar-alerts-row');
+  if (data.alerts.length) {
+    alertsRow.classList.remove('hidden');
+    document.getElementById('sidebar-alerts-count').textContent = data.alerts.length;
+  } else {
+    alertsRow.classList.add('hidden');
+  }
+
+  // Update status bar
+  const st = document.getElementById('status-analysis');
+  if (st) st.textContent = '⚡ €' + fmt2(data.totals.monthly) + '/mo · ' + data.score + '%';
+
+  // Show "LIVE" badge
+  const badge = document.getElementById('cost-panel-badge');
+  if (badge) badge.classList.remove('hidden');
+
+  // Apply Monaco decorations (cost hints inline)
+  applyCostDecorations(data);
+
+  showToast('€' + fmt2(data.totals.monthly) + '/month · ' + data.score + '% sovereign');
+}
+
+function applyCostDecorations(data) {
+  if (!state.editor) return;
+  const model = state.editor.getModel();
+  if (!model) return;
+  const content = model.getValue();
+  const lines = content.split('\n');
+
+  const newDecs = [];
+  for (const r of data.resources) {
+    const lineIdx = (r._line || 0) - 1;
+    if (lineIdx >= 0 && lineIdx < lines.length) {
+      newDecs.push({
+        range: new monaco.Range(lineIdx + 1, lines[lineIdx].length + 1, lineIdx + 1, lines[lineIdx].length + 1),
+        options: {
+          after: {
+            content: '  // ← €' + r.monthly_price + '/mo',
+            inlineClassName: 'cost-hint',
+          }
+        }
+      });
+    }
+  }
+  state.decorations = state.editor.deltaDecorations(state.decorations, newDecs);
+}
+
+// ── Mobile drawer ─────────────────────────────────────────────────────────
+let drawerOpen = false;
+function toggleMobileDrawer() {
+  drawerOpen = !drawerOpen;
+  const el = document.getElementById('mobile-drawer');
+  if (el) el.classList.toggle('open', drawerOpen);
+}
+
+// ── Monaco init ───────────────────────────────────────────────────────────
+function initMonaco() {
+  if (state.monacoLoaded) return;
+  state.monacoLoaded = true;
+
+  (window.__monacoReady || Promise.reject(new Error('Monaco loader not found'))).then(() => {
+
+      // Register HCL language
+      monaco.languages.register({ id: 'hcl' });
+      monaco.languages.setMonarchTokensProvider('hcl', {
+        keywords: ['resource','data','variable','output','module','locals','terraform','provider','required_providers','required_version','backend','dynamic','for_each','count','depends_on','lifecycle','source','version'],
+        builtins: ['true','false','null','var','local','module','path','self','each'],
+        tokenizer: {
+          root: [
+            [/#.*$/, 'comment'],
+            [/"([^"\\]|\\.)*"/, 'string'],
+            [/<<[-~]?(\w+)/, { token: 'string', next: '@heredoc.$1' }],
+            [/\$\{/, { token: 'delimiter.bracket', next: '@interpolation' }],
+            [/\b(resource|data|variable|output|module|locals|terraform|provider|required_providers|required_version|backend|dynamic|for_each|count|depends_on|lifecycle|source|version)\b/, 'keyword'],
+            [/\b(true|false|null)\b/, 'constant'],
+            [/\b(var|local|module|path|self|each)\b/, 'type'],
+            [/[0-9]+(\.[0-9]+)?/, 'number'],
+            [/[{}[\](),=]/, 'delimiter'],
+            [/[a-zA-Z_][\w-]*/, 'identifier'],
+          ],
+          comment: [],
+          string: [],
+          heredoc: [
+            [/^(\w+)$/, { cases: { '$1==$S2': { token: 'string', next: '@pop' }, '@default': 'string' } }],
+            [/.*/, 'string'],
+          ],
+          interpolation: [
+            [/\}/, { token: 'delimiter.bracket', next: '@pop' }],
+            { include: 'root' }
+          ],
+        }
+      });
+
+      // Hover provider (shows resource info)
+      monaco.languages.registerHoverProvider('hcl', {
+        provideHover(model, position) {
+          const word = model.getWordAtPosition(position);
+          if (!word) return null;
+          const type = Object.keys(HCL_DB).find(k => k.includes(word.word) || word.word.includes(k.split('_').pop()));
+          if (!type) return null;
+          const db = HCL_DB[type];
+          const def = db['_'];
+          if (!def) return null;
+          return {
+            contents: [
+              { value: `**${def.l}**` },
+              { value: `€${def.m}/month · €${def.h}/hour\n\n${def.s ? '✅ EU Sovereign' : '⚠️ Non-EU provider'}` }
+            ]
+          };
+        }
+      });
+
+      // Autocomplete for resource types
+      monaco.languages.registerCompletionItemProvider('hcl', {
+        provideCompletionItems(model, position) {
+          const line = model.getLineContent(position.lineNumber);
+          const suggestions = [];
+          if (line.trim().startsWith('resource')) {
+            Object.keys(HCL_DB).forEach(type => {
+              const def = HCL_DB[type]['_'];
+              suggestions.push({
+                label: type,
+                kind: monaco.languages.CompletionItemKind.Class,
+                detail: def ? def.l + ' · €' + def.m + '/mo' : type,
+                insertText: `"${type}" "name" {\n  \n}`,
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                range: { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },
+              });
+            });
+          }
+          return { suggestions };
+        }
+      });
+
+      // Define theme
+      monaco.editor.defineTheme('eucost-dark', {
+        base: 'vs-dark', inherit: true,
+        rules: [
+          { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
+          { token: 'keyword', foreground: '569cd6', fontStyle: 'bold' },
+          { token: 'string', foreground: 'ce9178' },
+          { token: 'number', foreground: 'b5cea8' },
+          { token: 'constant', foreground: '4fc1ff' },
+          { token: 'type', foreground: '4ec9b0' },
+          { token: 'identifier', foreground: '9cdcfe' },
+          { token: 'delimiter', foreground: 'd4d4d4' },
+          { token: 'cost-hint', foreground: '10b981', fontStyle: 'italic' },
+        ],
+        colors: {
+          'editor.background': '#1e1e1e',
+          'editorGutter.background': '#1e1e1e',
+          'editor.lineHighlightBackground': '#2a2d2e',
+          'editorLineNumber.foreground': '#505050',
+          'editorLineNumber.activeForeground': '#c6c6c6',
+          'editorIndentGuide.background': '#404040',
+        }
+      });
+
+      // Create editor
+      state.editor = monaco.editor.create(document.getElementById('monaco-container'), {
+        value: state.files[0]?.content || DEFAULT_TF,
+        language: 'hcl',
+        theme: 'eucost-dark',
+        fontSize: 13,
+        lineHeight: 21,
+        fontFamily: "'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace",
+        fontLigatures: true,
+        minimap: { enabled: true, maxColumn: 80 },
+        automaticLayout: true,
+        wordWrap: 'off',
+        scrollBeyondLastLine: false,
+        renderLineHighlight: 'all',
+        lineNumbers: 'on',
+        folding: true,
+        foldingHighlight: true,
+        bracketPairColorization: { enabled: true },
+        formatOnPaste: false,
+        tabSize: 2,
+        insertSpaces: true,
+        smoothScrolling: true,
+        cursorBlinking: 'smooth',
+        cursorSmoothCaretAnimation: 'on',
+        renderWhitespace: 'boundary',
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: true,
+        padding: { top: 12, bottom: 12 },
+      });
+
+      // Keyboard shortcuts
+      state.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runAnalysis);
+      state.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, downloadCurrentFile);
+      state.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, newFile);
+
+      // Cursor position → status bar
+      state.editor.onDidChangeCursorPosition(e => {
+        const pos = document.getElementById('status-pos');
+        if (pos) pos.textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+      });
+
+      // Live debounced analysis
+      let debounce;
+      state.editor.onDidChangeModelContent(() => {
+        if (state.files[state.activeIdx]) {
+          state.files[state.activeIdx].content = state.editor.getValue();
+          state.files[state.activeIdx].dirty = true;
+        }
+        renderFileTabs();
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          const data = analyzeHCL(state.editor.getValue());
+          if (data) {
+            const ov = document.getElementById('cost-overlay');
+            const ot = document.getElementById('cost-overlay-text');
+            if (ov && ot) { ot.textContent = '€' + fmt2(data.totals.monthly) + '/mo · ' + data.score + '% sovereign'; ov.classList.remove('hidden'); }
+            const st = document.getElementById('status-analysis');
+            if (st) st.textContent = '⚡ €' + fmt2(data.totals.monthly) + '/mo · ' + data.score + '%';
+          }
+        }, 1000);
+      });
+
+      // Hide loading overlay
+      document.getElementById('ide-loading').style.display = 'none';
+
+      // Run initial analysis
+      const initData = analyzeHCL(state.editor.getValue());
+      if (initData) {
+        const ov = document.getElementById('cost-overlay');
+        const ot = document.getElementById('cost-overlay-text');
+        if (ov && ot) { ot.textContent = '€' + fmt2(initData.totals.monthly) + '/mo · ' + initData.score + '% sovereign'; ov.classList.remove('hidden'); }
+        const st = document.getElementById('status-analysis');
+        if (st) st.textContent = '⚡ €' + fmt2(initData.totals.monthly) + '/mo · ' + initData.score + '%';
+      }
+
+  }).catch(() => {
+    document.getElementById('ide-loading').innerHTML = `
+      <div class="text-center">
+        <p class="text-gray-400 text-sm mb-4">Monaco could not load. Using fallback editor.</p>
+        <textarea id="hcl-fallback" class="w-full h-full bg-[#1e1e1e] text-green-400 font-mono text-sm p-4 border-none outline-none resize-none" style="min-height:400px">${escHtml(state.files[0]?.content || DEFAULT_TF)}</textarea>
+      </div>`;
+    document.getElementById('ide-loading').style.display = '';
+    state.editor = { getValue: () => document.getElementById('hcl-fallback')?.value || '', setValue: v => { const el = document.getElementById('hcl-fallback'); if (el) el.value = v; }, addCommand: () => {}, onDidChangeCursorPosition: () => {}, onDidChangeModelContent: () => {}, deltaDecorations: () => [], getModel: () => null };
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── Panel switching (Cost / AI) ───────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+function switchIDEPanel(panel) {
+  const isCost = panel === 'cost';
+  document.getElementById('panel-cost').classList.toggle('hidden', !isCost);
+  document.getElementById('panel-ai').classList.toggle('hidden', isCost);
+  document.getElementById('panel-ai').classList.toggle('flex', !isCost);
+  document.getElementById('tab-btn-cost').classList.toggle('active', isCost);
+  document.getElementById('tab-btn-ai').classList.toggle('active', !isCost);
+  if (!isCost) {
+    // Show welcome message if first open
+    const msgs = document.getElementById('ai-messages');
+    if (msgs && !msgs.firstChild) appendAIMessage('assistant', 'Hi! I\'m your Terraform cost optimization assistant. I can analyze your HCL code, suggest EU-sovereign alternatives, and generate optimized configurations.\n\nAsk me anything, or use a suggestion below!');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── AI Assistant ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+function saveApiKey() {
+  const input = document.getElementById('ai-api-key');
+  const key = (input?.value || '').trim();
+  if (!key.startsWith('sk-ant-')) {
+    showToast('Invalid API key. Must start with sk-ant-', true); return;
+  }
+  sessionStorage.setItem('eucost_ai_key', key);
+  if (input) input.value = '';
+  const details = document.getElementById('ai-settings-details');
+  if (details) details.removeAttribute('open');
+  showToast('API key saved to session.');
+  appendAIMessage('assistant', 'API key saved. I\'m ready to help! Ask me anything about your Terraform infrastructure.');
+}
+
+function appendAIMessage(role, content) {
+  const container = document.getElementById('ai-messages');
+  if (!container) return;
+  const bubble = document.createElement('div');
+  bubble.className = 'p-3 rounded-sm text-xs leading-relaxed ' + (role === 'user' ? 'ai-bubble-user' : 'ai-bubble-assistant');
+  if (role === 'user') {
+    const label = document.createElement('div');
+    label.className = 'text-[9px] font-semibold text-blue-500 uppercase tracking-wider mb-1';
+    label.textContent = 'You';
+    bubble.appendChild(label);
+  } else {
+    const label = document.createElement('div');
+    label.className = 'text-[9px] font-semibold text-purple-500 uppercase tracking-wider mb-1 flex items-center gap-1';
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-wand-magic-sparkles text-[8px]';
+    label.appendChild(icon);
+    const txt = document.createTextNode(' AI');
+    label.appendChild(txt);
+    bubble.appendChild(label);
+  }
+  const text = document.createElement('div');
+  text.className = 'whitespace-pre-wrap';
+  text.textContent = content;
+  bubble.appendChild(text);
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendAIThinking() {
+  const container = document.getElementById('ai-messages');
+  if (!container) return null;
+  const bubble = document.createElement('div');
+  bubble.className = 'p-3 rounded-sm text-xs ai-bubble-assistant';
+  bubble.id = 'ai-thinking-bubble';
+  const dots = document.createElement('div');
+  dots.className = 'flex gap-1 items-center';
+  for (let i = 0; i < 3; i++) {
+    const d = document.createElement('div');
+    d.className = 'w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse';
+    d.style.animationDelay = (i * 0.2) + 's';
+    dots.appendChild(d);
+  }
+  bubble.appendChild(dots);
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+  return bubble;
+}
+
+async function sendAIMessage(promptText) {
+  const inputEl = document.getElementById('ai-input');
+  const text = promptText || (inputEl?.value || '').trim();
+  if (!text) return;
+  if (inputEl) inputEl.value = '';
+  const apiKey = sessionStorage.getItem('eucost_ai_key');
+  if (!apiKey) {
+    switchIDEPanel('ai');
+    appendAIMessage('user', text);
+    appendAIMessage('assistant', 'Please set your Claude API key first (click "API Key Settings" above).');
+    return;
+  }
+  switchIDEPanel('ai');
+  appendAIMessage('user', text);
+  const thinking = appendAIThinking();
+  // Build context from current editor + analysis
+  const hclCode = state.editor ? state.editor.getValue() : '';
+  const analysis = state.lastAnalysis;
+  let contextMsg = text;
+  if (hclCode.trim()) {
+    contextMsg += '\n\n[Current Terraform HCL code]\n```hcl\n' + hclCode.slice(0, 4000) + (hclCode.length > 4000 ? '\n... (truncated)' : '') + '\n```';
+  }
+  if (analysis) {
+    contextMsg += '\n\n[Current cost analysis]\nMonthly total: €' + fmt2(analysis.totals?.monthly) + ' · Sovereign score: ' + (analysis.score || 0) + '% · Resources: ' + (analysis.resources?.length || 0);
+  }
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: 'You are a Terraform cost optimization expert for European cloud infrastructure. You help users with the EuroOpenCost tool. You have deep knowledge of EU-sovereign cloud providers: Hetzner Cloud, OVH, Scaleway, IONOS, STACKIT, Open Telekom Cloud (OTC). You prefer EU-sovereign solutions over AWS/GCP/Azure. You write clean, production-ready Terraform HCL. Be concise and practical. When generating code, use real resource types from the HCL database.',
+        messages: [{ role: 'user', content: contextMsg }]
+      })
+    });
+    if (thinking && thinking.parentNode) thinking.parentNode.removeChild(thinking);
+    if (!resp.ok) {
+      const err = await resp.text();
+      appendAIMessage('assistant', 'API error: ' + resp.status + '. Please check your API key.');
+      return;
+    }
+    const data = await resp.json();
+    const reply = data.content?.[0]?.text || 'No response received.';
+    appendAIMessage('assistant', reply);
+  } catch (e) {
+    if (thinking && thinking.parentNode) thinking.parentNode.removeChild(thinking);
+    appendAIMessage('assistant', 'Connection error. Please check your internet connection and API key.');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── Terminal ──────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+const termState = {
+  history: [],
+  historyIdx: -1,
+  isOpen: false,
+  rateLimit: { count: 0, lastReset: Date.now() },
+};
+
+const TERM_COMMANDS = [
+  'eucost analyze', 'eucost plan', 'eucost validate',
+  'terraform init', 'terraform validate', 'terraform plan', 'terraform fmt',
+  'clear', 'help'
+];
+
+function toggleTerminal() {
+  termState.isOpen = !termState.isOpen;
+  const panel = document.getElementById('terminal-panel');
+  const handle = document.getElementById('terminal-resize-handle');
+  if (panel) panel.style.display = termState.isOpen ? 'flex' : 'none';
+  if (handle) handle.style.display = termState.isOpen ? 'block' : 'none';
+  if (termState.isOpen) {
+    if (!document.getElementById('terminal-output').firstChild) termWelcome();
+    document.getElementById('terminal-input')?.focus();
+  }
+  if (state.editor) state.editor.layout();
+}
+
+function termPrint(text, cls) {
+  const out = document.getElementById('terminal-output');
+  if (!out) return;
+  const div = document.createElement('div');
+  div.className = cls || 't-out';
+  div.textContent = text;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function termPrintLines(lines, cls, delay) {
+  let i = 0;
+  function next() {
+    if (i >= lines.length) return;
+    termPrint(lines[i], cls || 't-out');
+    i++;
+    setTimeout(next, delay || 40);
+  }
+  next();
+}
+
+function termClear() {
+  const out = document.getElementById('terminal-output');
+  if (!out) return;
+  while (out.firstChild) out.removeChild(out.firstChild);
+}
+
+function termWelcome() {
+  termPrint('EuroOpenCost IDE Terminal v1.0', 't-ok');
+  termPrint('EU Sovereign Cloud Intelligence', 't-dim');
+  termPrint('─'.repeat(42), 't-dim');
+  termPrint("Type 'help' for available commands.", 't-info');
+  termPrint('', 't-out');
+}
+
+function handleTerminalCommand(raw) {
+  const cmd = raw.trim();
+  if (!cmd) return;
+  // Push to history (max 50)
+  if (termState.history[0] !== cmd) termState.history.unshift(cmd);
+  if (termState.history.length > 50) termState.history.pop();
+  termState.historyIdx = -1;
+  // Echo command
+  termPrint('eucost@ide:~$ ' + cmd, 't-cmd');
+  // Dispatch
+  if (cmd === 'clear') { termClear(); return; }
+  if (cmd === 'help') { cmdHelp(); return; }
+  const parts = cmd.split(/\s+/);
+  const base = parts[0];
+  const sub = parts[1] || '';
+  if (base === 'eucost') {
+    if (sub === 'analyze') cmdEucostAnalyze();
+    else if (sub === 'plan') cmdEucostPlan();
+    else if (sub === 'validate') cmdEucostValidate();
+    else termPrint('Unknown eucost command. Try: analyze, plan, validate', 't-err');
+  } else if (base === 'terraform' || base === 'tf') {
+    if (sub === 'init') cmdTerraformInit();
+    else if (sub === 'validate') cmdTerraformValidate();
+    else if (sub === 'plan') cmdTerraformPlan();
+    else if (sub === 'fmt') cmdTerraformFmt();
+    else termPrint('Unknown terraform command. Try: init, validate, plan, fmt', 't-err');
+  } else {
+    termPrint('Command not found: ' + base + ". Type 'help' for commands.", 't-err');
+  }
+}
+
+function checkRateLimit() {
+  const now = Date.now();
+  if (now - termState.rateLimit.lastReset > 60000) {
+    termState.rateLimit.count = 0;
+    termState.rateLimit.lastReset = now;
+  }
+  if (termState.rateLimit.count >= 5) {
+    termPrint('Rate limit: max 5 analysis runs per minute.', 't-err'); return false;
+  }
+  termState.rateLimit.count++;
+  return true;
+}
+
+function cmdHelp() {
+  const cmds = [
+    ['eucost analyze', 'Run cost analysis on current file'],
+    ['eucost plan',    'Show cost breakdown per resource'],
+    ['eucost validate','Validate HCL resource types'],
+    ['terraform init', 'Initialize Terraform (simulated)'],
+    ['terraform validate', 'Validate configuration'],
+    ['terraform plan', 'Show execution plan (simulated)'],
+    ['terraform fmt',  'Format HCL code in editor'],
+    ['clear',          'Clear terminal output'],
+    ['help',           'Show this help'],
+  ];
+  termPrint('', 't-out');
+  termPrint('Available commands:', 't-info');
+  cmds.forEach(([cmd, desc]) => {
+    const line = document.createElement('div');
+    line.className = 't-out';
+    const span1 = document.createElement('span');
+    span1.style.color = '#10b981';
+    span1.style.display = 'inline-block';
+    span1.style.width = '200px';
+    span1.textContent = '  ' + cmd;
+    const span2 = document.createElement('span');
+    span2.style.color = '#9ca3af';
+    span2.textContent = desc;
+    line.appendChild(span1); line.appendChild(span2);
+    document.getElementById('terminal-output')?.appendChild(line);
+    document.getElementById('terminal-output').scrollTop = 999999;
+  });
+  termPrint('', 't-out');
+}
+
+function cmdEucostAnalyze() {
+  if (!checkRateLimit()) return;
+  const code = state.editor ? state.editor.getValue() : '';
+  const data = analyzeHCL(code);
+  if (!data) { termPrint('No recognized Terraform resources found.', 't-err'); return; }
+  termPrint('', 't-out');
+  termPrint('── EuroOpenCost Analysis ──────────────────', 't-info');
+  termPrint('Resources analyzed:  ' + data.resources.length, 't-out');
+  termPrint('Monthly total:       €' + fmt2(data.totals.monthly), 't-ok');
+  termPrint('Hourly rate:         €' + fmt4(data.totals.hourly), 't-out');
+  termPrint('Sovereign score:     ' + data.score + '%', data.score >= 80 ? 't-ok' : 't-err');
+  if (data.alerts.length) {
+    termPrint('', 't-out');
+    termPrint('Alerts:', 't-err');
+    data.alerts.forEach(a => termPrint('  ⚠ ' + a, 't-err'));
+  }
+  termPrint('', 't-out');
+}
+
+function cmdEucostPlan() {
+  const code = state.editor ? state.editor.getValue() : '';
+  const resources = parseHCL(code);
+  if (!resources.length) { termPrint('No resources found in current file.', 't-err'); return; }
+  termPrint('', 't-out');
+  termPrint('── Cost Plan ───────────────────────────────', 't-info');
+  resources.forEach(r => {
+    const line = document.createElement('div');
+    line.className = 't-out';
+    const nameSpan = document.createElement('span');
+    nameSpan.style.color = r.sovereign ? '#9cdcfe' : '#f97583';
+    nameSpan.style.display = 'inline-block';
+    nameSpan.style.width = '240px';
+    nameSpan.textContent = '  ' + r.name;
+    const priceSpan = document.createElement('span');
+    priceSpan.style.color = '#10b981';
+    priceSpan.textContent = '€' + r.monthly_price + '/mo';
+    const euSpan = document.createElement('span');
+    euSpan.style.color = r.sovereign ? '#10b981' : '#f97583';
+    euSpan.style.marginLeft = '12px';
+    euSpan.textContent = r.sovereign ? '[EU]' : '[non-EU]';
+    line.appendChild(nameSpan); line.appendChild(priceSpan); line.appendChild(euSpan);
+    document.getElementById('terminal-output')?.appendChild(line);
+    document.getElementById('terminal-output').scrollTop = 999999;
+  });
+  const total = resources.reduce((s, r) => s + parseFloat(r.monthly_price), 0);
+  termPrint('', 't-out');
+  termPrint('Total: €' + fmt2(total) + '/mo · €' + fmt4(total / 730) + '/hr', 't-ok');
+  termPrint('', 't-out');
+}
+
+function cmdEucostValidate() {
+  const code = state.editor ? state.editor.getValue() : '';
+  const blockRe = /resource\s+"([^"]+)"\s+"([^"]+)"/g;
+  let m, errors = 0, warnings = 0;
+  const seen = [];
+  while ((m = blockRe.exec(code)) !== null) {
+    const type = m[1];
+    if (HCL_DB[type]) {
+      seen.push(type);
+    } else {
+      termPrint('  Warning: Unknown resource type "' + type + '"', 't-err');
+      warnings++;
+    }
+  }
+  if (!seen.length && !warnings) { termPrint('No resource blocks found in file.', 't-dim'); return; }
+  if (errors === 0 && warnings === 0) {
+    termPrint('', 't-out');
+    termPrint('✓ Validation passed. All resource types are recognized.', 't-ok');
+  } else if (errors === 0) {
+    termPrint('', 't-out');
+    termPrint('⚠ Validation passed with ' + warnings + ' warning(s).', 'out');
+  }
+  termPrint('', 't-out');
+}
+
+function cmdTerraformInit() {
+  termPrintLines([
+    '',
+    'Initializing the backend...',
+    '',
+    'Initializing provider plugins...',
+    '- Finding hetznercloud/hcloud versions matching "~> 1.44"...',
+    '- Finding latest version of hashicorp/aws...',
+    '- Installing hetznercloud/hcloud v1.44.1...',
+    '- Installed hetznercloud/hcloud v1.44.1 (signed by a HashiCorp partner)',
+    '',
+    'Terraform has been successfully initialized!',
+    '',
+    'You may now begin working with Terraform. Try running "terraform plan" to see',
+    'any changes that are required for your infrastructure.',
+    '',
+  ], 't-out', 35);
+  setTimeout(() => termPrint('✓ Init complete', 't-ok'), 700);
+}
+
+function cmdTerraformValidate() {
+  cmdEucostValidate();
+  termPrint('Success! The configuration is valid.', 't-ok');
+  termPrint('', 't-out');
+}
+
+function cmdTerraformPlan() {
+  const code = state.editor ? state.editor.getValue() : '';
+  const resources = parseHCL(code);
+  if (!resources.length) { termPrint('No resources found.', 't-err'); return; }
+  termPrintLines([
+    '',
+    'Terraform used the selected providers to generate the following execution plan.',
+    'Resource actions are indicated with the following symbols:',
+    '  + create',
+    '',
+    'Terraform will perform the following actions:',
+    '',
+  ], 't-out', 30);
+  let delay = 300;
+  resources.forEach((r, i) => {
+    setTimeout(() => {
+      termPrint('  # ' + r.name + ' will be created', 't-info');
+      termPrint('  + resource "' + r.type + '" "' + r.name.split('.')[1] + '" {', 't-out');
+      termPrint('      # (' + r.display_type + ' · €' + r.monthly_price + '/mo)', 't-dim');
+      termPrint('    }', 't-out');
+      termPrint('', 't-out');
+      if (i === resources.length - 1) {
+        setTimeout(() => {
+          termPrint('Plan: ' + resources.length + ' to add, 0 to change, 0 to destroy.', 't-ok');
+          termPrint('', 't-out');
+        }, 100);
+      }
+    }, delay + i * 80);
+  });
+}
+
+function cmdTerraformFmt() {
+  if (!state.editor) { termPrint('Editor not ready.', 't-err'); return; }
+  let code = state.editor.getValue();
+  // Basic formatting: normalize indentation to 2 spaces, trim trailing whitespace
+  const lines = code.split('\n');
+  let indent = 0;
+  const formatted = lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    if (trimmed === '}' || trimmed === ']') indent = Math.max(0, indent - 1);
+    const out = '  '.repeat(indent) + trimmed;
+    if (trimmed.endsWith('{') || trimmed.endsWith('[')) indent++;
+    return out;
+  });
+  state.editor.setValue(formatted.join('\n'));
+  termPrint('✓ Formatted 1 file.', 't-ok');
+  termPrint('', 't-out');
+}
+
+// ── Terminal input handling ────────────────────────────────────────────────
+function initTerminal() {
+  const input = document.getElementById('terminal-input');
+  if (!input) return;
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      handleTerminalCommand(input.value);
+      input.value = '';
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      termState.historyIdx = Math.min(termState.historyIdx + 1, termState.history.length - 1);
+      if (termState.history[termState.historyIdx] !== undefined) input.value = termState.history[termState.historyIdx];
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      termState.historyIdx = Math.max(termState.historyIdx - 1, -1);
+      input.value = termState.historyIdx >= 0 ? (termState.history[termState.historyIdx] || '') : '';
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const partial = input.value;
+      const match = TERM_COMMANDS.find(c => c.startsWith(partial) && c !== partial);
+      if (match) input.value = match;
+    }
+  });
+}
+
+// ── Terminal drag-to-resize ────────────────────────────────────────────────
+function initTerminalResize() {
+  const handle = document.getElementById('terminal-resize-handle');
+  const panel  = document.getElementById('terminal-panel');
+  if (!handle || !panel) return;
+  let dragging = false, startY = 0, startH = 0;
+  handle.addEventListener('mousedown', e => {
+    dragging = true; startY = e.clientY; startH = panel.offsetHeight;
+    document.body.style.cursor = 'row-resize'; document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const delta = startY - e.clientY;
+    const newH = Math.max(80, Math.min(startH + delta, window.innerHeight * 0.6));
+    panel.style.height = newH + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    if (state.editor) state.editor.layout();
+  });
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    authUser = session.user;
+    const { data } = await sb.from('profiles').select('is_pro').eq('id', authUser.id).single();
+    authProfile = data;
+  }
+
+  const pro = isPro();
+  document.getElementById('ide-gate').classList.toggle('hidden', pro);
+
+  const ideApp = document.getElementById('ide-app');
+  if (pro) {
+    ideApp.classList.add('visible');
+    document.getElementById('header-pro-badge').classList.remove('hidden');
+    const lk = document.getElementById('nav-ide-lock'); if (lk) lk.style.display = 'none';
+
+    // Load saved files from sessionStorage or start fresh
+    const saved = sessionStorage.getItem('ide_files');
+    if (saved) {
+      try {
+        const files = JSON.parse(saved);
+        files.forEach(f => state.files.push({ name: f.name, content: f.content, dirty: false }));
+      } catch(e) { /* ignore */ }
+    }
+    if (!state.files.length) {
+      state.files.push({ name: 'main.tf', content: DEFAULT_TF, dirty: false });
+    }
+
+    renderFileTabs();
+    renderFileTree();
+    updateStatusFile();
+    initMonaco();
+    initTerminal();
+    initTerminalResize();
+
+    // Ctrl+` keyboard shortcut for terminal
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === '`') { e.preventDefault(); toggleTerminal(); }
+    });
+
+    // Persist files to sessionStorage on unload
+    window.addEventListener('beforeunload', () => {
+      if (state.editor) {
+        if (state.files[state.activeIdx]) state.files[state.activeIdx].content = state.editor.getValue();
+      }
+      sessionStorage.setItem('ide_files', JSON.stringify(state.files.map(f => ({ name: f.name, content: f.content }))));
+    });
+  }
+});
+</script>
+</body>
+</html>

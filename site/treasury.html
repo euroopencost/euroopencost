@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EuroOpenCost | Treasury</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'eu-blue':'#0a1945','eu-border':'#e5e7eb' },
+        fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'] },
+      }
+    }
+  }
+</script>
+<style>
+  .grid-bg { background-color:#f8f9fa; background-image:linear-gradient(to right,#e5e7eb 1px,transparent 1px),linear-gradient(to bottom,#e5e7eb 1px,transparent 1px); background-size:50px 50px; }
+  .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
+  .nav-link:hover { color:#374151; border-color:#d1d5db; }
+  .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="text-gray-800 font-sans antialiased overflow-x-hidden min-h-screen grid-bg bg-[#f8f9fa]">
+
+<header class="bg-white/90 backdrop-blur-sm border-b border-eu-border sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="audit.html" class="nav-link">
+            Audit Engine
+            <span id="nav-audit-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="policies.html" class="nav-link">
+            Sovereign Policies
+            <span id="nav-policies-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="treasury.html" class="nav-link active">
+            Treasury
+            <span id="nav-treasury-lock" class="ml-1.5 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span>
+          </a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <span id="header-server-dot" class="w-2 h-2 rounded-full bg-gray-300"></span>
+        <a href="index.html#settings" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" title="Settings" style="text-decoration:none;">
+          <i class="fa-solid fa-gear text-sm"></i>
+        </a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="audit.html" class="nav-link-mobile">Audit Engine <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="policies.html" class="nav-link-mobile">Sovereign Policies <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="treasury.html" class="nav-link-mobile">Treasury <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="flex-1 min-w-0">
+
+    <!-- Gate -->
+    <div id="treasury-gate" class="bg-white border border-eu-border shadow-sm flex flex-col items-center justify-center" style="min-height:400px">
+      <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
+        <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>
+        PREMIUM ACCESS REQUIRED
+        <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+      </p>
+      <a href="index.html#settings" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors" style="text-decoration:none;">
+        UPGRADE TO PRO
+      </a>
+    </div>
+
+    <!-- Content -->
+    <div id="treasury-main" class="hidden">
+      <div class="mb-8 flex justify-between items-end">
+        <div>
+          <h1 class="text-4xl font-normal text-gray-900 leading-tight">Treasury</h1>
+          <p class="mt-2 text-sm text-gray-500 uppercase tracking-wider">ANALYSIS HISTORY</p>
+        </div>
+        <button onclick="clearHistory()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-50">
+          CLEAR HISTORY
+        </button>
+      </div>
+      <div id="reports-list" class="space-y-4"></div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://pquqtyfezwagzeujweqa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxdXF0eWZlendhZ3pldWp3ZXFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTk5ODIsImV4cCI6MjA5MDE3NTk4Mn0.SP8ZvG64595-IflvEhZTodWVzGJYoqszfj1zlRGR66M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let authUser = null, authProfile = null;
+const state = {
+  history: JSON.parse(localStorage.getItem('eucost_history') || '[]'),
+};
+function isPro() { return authProfile?.is_pro === true; }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n) { return Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function downloadFile(name, content, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content],{type})); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function showToast(msg, isError) {
+  const t = document.getElementById('toast'), m = document.getElementById('toast-msg');
+  if (!t||!m) return; m.textContent = msg;
+  t.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none '+(isError?'bg-red-600':'bg-eu-blue');
+  t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0';},3500);
+}
+function generateSimpleHTMLReport(entry) {
+  const d = entry.data;
+  const rows = (d.resources||[]).map(r=>`<tr><td>${escHtml(r.name)}</td><td>${escHtml(r.display_type||r.type||'')}</td><td style="text-align:right">€ ${r.monthly_price}</td></tr>`).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>eucost Report</title><style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:20px}table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #e5e7eb}th{background:#f3f4f6;font-size:11px;text-transform:uppercase;letter-spacing:1px}h1{color:#0a1945}.score{color:#10b981;font-size:48px;font-weight:800}</style></head><body><h1>EuroOpenCost Report</h1><p style="color:#6b7280">${entry.date}</p><div class="score">${entry.score}%</div><p style="color:#10b981;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:12px">Sovereign Score</p><h2>Summary</h2><p>Resources: ${entry.resources} · Monthly: €${fmt(entry.monthly)}</p><h2>Resource Inventory</h2><table><thead><tr><th>Resource</th><th>Type</th><th style="text-align:right">€/month</th></tr></thead><tbody>${rows}</tbody></table><p style="font-size:11px;color:#9ca3af;margin-top:40px">Generated by EuroOpenCost v0.1.0</p></body></html>`;
+}
+function downloadReportJSON(i) {
+  const entry = state.history[i];
+  downloadFile('eucost-report-'+entry.id+'.json', JSON.stringify(entry.data,null,2), 'application/json');
+  showToast('JSON report downloaded.');
+}
+function downloadReportHTML(i) {
+  const entry = state.history[i];
+  downloadFile('eucost-report-'+entry.id+'.html', generateSimpleHTMLReport(entry), 'text/html');
+  showToast('HTML report downloaded.');
+}
+function clearHistory() {
+  if (!confirm('Clear all analysis history?')) return;
+  state.history = [];
+  localStorage.removeItem('eucost_history');
+  renderReports();
+  showToast('History cleared.');
+}
+function renderReports() {
+  const el = document.getElementById('reports-list');
+  if (!el) return;
+  if (state.history.length === 0) {
+    el.innerHTML = `<div class="bg-white border border-eu-border p-10 text-center shadow-sm"><i class="fa-solid fa-folder-open text-gray-300 text-3xl mb-3"></i><p class="text-xs text-gray-400">No analyses yet.<br/>Run your first plan in the <a href="audit.html" class="text-eu-blue underline">Audit Engine</a>.</p></div>`;
+    return;
+  }
+  el.innerHTML = state.history.map((entry,i) => `
+    <div class="bg-white border border-eu-border p-5 shadow-sm">
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <p class="text-[10px] text-gray-400 uppercase tracking-wider">${entry.date}</p>
+          <p class="font-semibold text-eu-blue text-sm mt-0.5">${entry.resources} resources · €${fmt(entry.monthly)}/month</p>
+        </div>
+        <span class="text-xs font-bold px-2.5 py-1 ${entry.score>=90?'bg-green-50 text-green-700':entry.score>=60?'bg-yellow-50 text-yellow-700':'bg-red-50 text-red-600'}">${entry.score}% sovereign</span>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="downloadReportHTML(${i})" class="flex items-center gap-1.5 bg-eu-blue text-white text-xs font-medium px-3 py-1.5 hover:bg-blue-900 transition-colors">
+          <i class="fa-solid fa-file-code text-[10px]"></i> HTML
+        </button>
+        <button onclick="downloadReportJSON(${i})" class="flex items-center gap-1.5 border border-eu-border text-gray-600 text-xs font-medium px-3 py-1.5 hover:bg-gray-50">
+          <i class="fa-solid fa-brackets-curly text-[10px]"></i> JSON
+        </button>
+      </div>
+    </div>`).join('');
+}
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    authUser = session.user;
+    const { data } = await sb.from('profiles').select('is_pro').eq('id', authUser.id).single();
+    authProfile = data;
+  }
+  const pro = isPro();
+  document.getElementById('treasury-gate').classList.toggle('hidden', pro);
+  document.getElementById('treasury-main').classList.toggle('hidden', !pro);
+  if (pro) {
+    document.getElementById('header-pro-badge').classList.remove('hidden');
+    ['audit','policies','treasury'].forEach(t => {
+      const el = document.getElementById('nav-'+t+'-lock');
+      if (el) el.style.display = 'none';
+    });
+    renderReports();
+  }
+});
+</script>
+</body>
+</html>

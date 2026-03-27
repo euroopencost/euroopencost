@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EuroOpenCost | Calculator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { 'eu-blue':'#0a1945','eu-border':'#e5e7eb' },
+        fontFamily: { sans:['Inter','ui-sans-serif','system-ui','sans-serif'] },
+      }
+    }
+  }
+</script>
+<style>
+  .grid-bg { background-color:#f8f9fa; background-image:linear-gradient(to right,#e5e7eb 1px,transparent 1px),linear-gradient(to bottom,#e5e7eb 1px,transparent 1px); background-size:50px 50px; }
+  .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
+  .nav-link:hover { color:#374151; border-color:#d1d5db; }
+  .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
+  .nav-link-infra { color:#7c3aed; border-color:transparent; }
+  .nav-link-infra:hover { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-infra.active { color:#5b21b6; border-color:#7c3aed; }
+  .nav-link-mobile { color:#6b7280; font-size:0.875rem; font-weight:500; padding:8px 0; text-decoration:none; display:flex; align-items:center; border-bottom:1px solid #f3f4f6; }
+  .nav-link-mobile:hover { color:#111827; }
+  select, input[type=number] { border:1px solid #e5e7eb; padding:6px 10px; font-size:0.75rem; background:white; outline:none; width:100%; }
+  select:focus, input[type=number]:focus { border-color:#0a1945; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  @media print {
+    header, #add-panel, #actions-bar, .no-print { display:none !important; }
+    body { background:white !important; }
+    .grid-bg { background:none !important; }
+    .print-title { display:block !important; }
+    @page { margin: 15mm; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body class="text-gray-800 font-sans antialiased overflow-x-hidden min-h-screen grid-bg bg-[#f8f9fa]">
+
+<header class="bg-white/90 backdrop-blur-sm border-b border-eu-border sticky top-0 z-50 no-print">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-8">
+        <a href="index.html" class="text-2xl font-bold text-eu-blue tracking-tight select-none" style="text-decoration:none;">eucost</a>
+        <nav class="hidden md:flex space-x-6">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="ide.html" class="nav-link">Web IDE <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="reporting.html" class="nav-link">Reporting <span class="ml-1 text-yellow-500 text-[10px]"><i class="fa-solid fa-lock"></i></span></a>
+          <a href="calculator.html" class="nav-link active">Calculator</a>
+          <a href="compare.html" class="nav-link">Compare</a>
+          <a href="infra.html" class="nav-link nav-link-infra"><i class="fa-solid fa-diagram-project mr-1 text-[11px]"></i>Infra <span class="ml-1 text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-sm">NEW</span></a>
+          <a href="install.html" class="nav-link">Install</a>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono text-gray-500 uppercase tracking-wider">
+        <span class="hidden md:inline">CFO OFFICE</span>
+        <span id="header-pro-badge" class="hidden bg-eu-blue text-white text-[9px] font-bold px-2 py-0.5 tracking-widest">PRO</span>
+        <a href="index.html#settings" class="text-gray-400 hover:text-eu-blue transition-colors ml-1" title="Settings" style="text-decoration:none;"><i class="fa-solid fa-gear text-sm"></i></a>
+        <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-gray-800 p-1 ml-1"><i class="fa-solid fa-bars text-lg"></i></button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-eu-border bg-white">
+    <nav class="flex flex-col px-4 py-2">
+      <a href="index.html" class="nav-link-mobile">Dashboard</a>
+      <a href="ide.html" class="nav-link-mobile">Web IDE <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="reporting.html" class="nav-link-mobile">Reporting <i class="fa-solid fa-lock text-yellow-500 text-[10px] ml-1.5"></i></a>
+      <a href="calculator.html" class="nav-link-mobile">Calculator</a>
+      <a href="compare.html" class="nav-link-mobile">Compare</a>
+      <a href="install.html" class="nav-link-mobile">Install</a>
+    </nav>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <div class="print-title hidden mb-6">
+    <h1 class="text-3xl font-normal text-gray-900">EuroOpenCost — Cost Estimate</h1>
+    <p class="text-xs text-gray-400 mt-1">Generated by EuroOpenCost · euroopencost.eu · <span id="print-date"></span></p>
+  </div>
+
+  <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+    <div>
+      <h1 class="text-3xl sm:text-4xl font-normal text-gray-900 leading-tight">Cost<br/>Calculator</h1>
+      <p class="mt-2 text-sm text-gray-500 uppercase tracking-wider">BUILD YOUR INFRASTRUCTURE STACK</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Add Resource Panel -->
+    <div id="add-panel" class="no-print lg:col-span-1">
+      <div class="bg-white border border-eu-border shadow-sm p-5">
+        <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4">ADD RESOURCE</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Provider</label>
+            <select id="sel-provider" onchange="updateCategories()">
+              <option value="Hetzner">Hetzner</option>
+              <option value="OVH">OVH</option>
+              <option value="Scaleway">Scaleway</option>
+              <option value="IONOS">IONOS</option>
+              <option value="STACKIT">STACKIT</option>
+              <option value="OTC">OTC (T-Systems)</option>
+              <option value="AWS">AWS</option>
+              <option value="GCP">GCP</option>
+              <option value="Azure">Azure</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Category</label>
+            <select id="sel-category" onchange="updateInstances()">
+              <option value="Compute">Compute (VMs)</option>
+              <option value="Storage">Storage</option>
+              <option value="Network">Network</option>
+              <option value="Database">Database</option>
+              <option value="LoadBalancer">Load Balancer</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Instance / Size</label>
+            <select id="sel-instance"></select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Quantity</label>
+            <input type="number" id="sel-qty" value="1" min="1" max="999"/>
+          </div>
+          <div id="preview-box" class="bg-gray-50 border border-gray-200 p-3 text-xs hidden">
+            <div class="flex justify-between mb-1"><span class="text-gray-500">€/hour</span><span id="preview-hourly" class="font-bold text-eu-blue tabular-nums"></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">€/month</span><span id="preview-monthly" class="font-bold text-eu-blue tabular-nums"></span></div>
+          </div>
+          <button onclick="addResource()" class="w-full bg-eu-blue text-white py-2.5 text-xs font-medium tracking-widest uppercase hover:bg-blue-900 transition-colors">
+            <i class="fa-solid fa-plus mr-1.5"></i> ADD TO STACK
+          </button>
+        </div>
+      </div>
+
+      <!-- Terraform Snippet -->
+      <div class="bg-white border border-eu-border shadow-sm p-5 mt-4 no-print">
+        <h2 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">TERRAFORM SNIPPET</h2>
+        <pre id="tf-snippet" class="text-[10px] font-mono text-gray-500 bg-gray-50 p-3 overflow-x-auto whitespace-pre-wrap break-all max-h-40 overflow-y-auto">Add resources to see Terraform code.</pre>
+        <button onclick="copyTF()" class="mt-2 w-full border border-gray-300 text-gray-600 py-1.5 text-[10px] font-medium tracking-widest uppercase hover:bg-gray-50">
+          <i class="fa-solid fa-copy mr-1"></i> COPY
+        </button>
+      </div>
+    </div>
+
+    <!-- Stack Table -->
+    <div class="lg:col-span-2">
+      <div class="bg-white border border-eu-border shadow-sm">
+
+        <!-- Actions bar -->
+        <div id="actions-bar" class="no-print flex items-center justify-between px-4 py-2.5 border-b border-eu-border">
+          <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">YOUR STACK</span>
+          <div class="flex gap-2">
+            <button onclick="clearStack()" class="text-gray-400 hover:text-red-500 text-xs transition-colors"><i class="fa-solid fa-trash-can mr-1"></i> Clear</button>
+            <button onclick="exportPDF()" class="flex items-center gap-1.5 bg-eu-blue text-white text-[10px] font-medium px-3 py-1.5 hover:bg-blue-900 uppercase tracking-wider"><i class="fa-solid fa-file-pdf text-[10px]"></i> PDF</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-eu-border bg-gray-50">
+                <th class="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Resource</th>
+                <th class="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">Provider</th>
+                <th class="text-right px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Qty</th>
+                <th class="text-right px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">€/h</th>
+                <th class="text-right px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">€/mo</th>
+                <th class="px-2 py-3 no-print"></th>
+              </tr>
+            </thead>
+            <tbody id="stack-body">
+              <tr id="empty-row">
+                <td colspan="6" class="text-center py-12 text-xs text-gray-400">
+                  <i class="fa-solid fa-calculator text-gray-200 text-3xl mb-3 block"></i>
+                  Add resources from the left panel to start calculating.
+                </td>
+              </tr>
+            </tbody>
+            <tfoot id="stack-footer" class="hidden">
+              <tr class="border-t-2 border-eu-blue bg-eu-blue/5">
+                <td colspan="2" class="px-4 py-3 text-xs font-bold text-eu-blue uppercase tracking-wider">TOTAL</td>
+                <td class="px-4 py-3 text-right text-xs text-gray-500" id="total-qty">—</td>
+                <td class="px-4 py-3 text-right text-xs font-bold text-eu-blue tabular-nums" id="total-hourly"></td>
+                <td class="px-4 py-3 text-right text-sm font-bold text-eu-blue tabular-nums" id="total-monthly"></td>
+                <td class="no-print"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Summary cards -->
+        <div id="summary-cards" class="hidden border-t border-eu-border p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="border border-gray-200 p-3">
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Monthly Total</div>
+            <div id="card-monthly" class="text-xl font-bold text-eu-blue tabular-nums"></div>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Annual Est.</div>
+            <div id="card-annual" class="text-xl font-bold text-gray-700 tabular-nums"></div>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Resources</div>
+            <div id="card-resources" class="text-xl font-bold text-gray-700"></div>
+          </div>
+          <div class="border border-eu-blue p-3">
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Sovereign</div>
+            <div id="card-sovereign" class="text-xl font-bold text-green-600"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 bg-eu-blue pointer-events-none" style="opacity:0">
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────
+const ALL_RESOURCES = [
+  // Compute
+  {cat:'Compute',provider:'Hetzner',name:'CX11',cpu:1,ram:2,storage:20,price:3.79,hourly:0.0053,sovereign:true,tf:'hcloud_server',tf_attr:'server_type = "cx11"'},
+  {cat:'Compute',provider:'Hetzner',name:'CX21',cpu:2,ram:4,storage:40,price:5.83,hourly:0.0081,sovereign:true,tf:'hcloud_server',tf_attr:'server_type = "cx21"'},
+  {cat:'Compute',provider:'Hetzner',name:'CX31',cpu:2,ram:8,storage:80,price:10.59,hourly:0.0147,sovereign:true,tf:'hcloud_server',tf_attr:'server_type = "cx31"'},
+  {cat:'Compute',provider:'Hetzner',name:'CX41',cpu:4,ram:16,storage:160,price:19.55,hourly:0.0271,sovereign:true,tf:'hcloud_server',tf_attr:'server_type = "cx41"'},
+  {cat:'Compute',provider:'Hetzner',name:'CX51',cpu:8,ram:32,storage:240,price:37.09,hourly:0.0515,sovereign:true,tf:'hcloud_server',tf_attr:'server_type = "cx51"'},
+  {cat:'Compute',provider:'Hetzner',name:'CPX11',cpu:2,ram:2,storage:40,price:4.35,hourly:0.0060,sovereign:true,tf:'hcloud_server',tf_attr:'server_type = "cpx11"'},
+  {cat:'Compute',provider:'Hetzner',name:'CPX21',cpu:3,ram:4,storage:80,price:7.55,hourly:0.0105,sovereign:true,tf:'hcloud_server',tf_attr:'server_type = "cpx21"'},
+  {cat:'Compute',provider:'OVH',name:'S1-2',cpu:1,ram:2,storage:10,price:3.50,hourly:0.0049,sovereign:true,tf:'ovh_cloud_project_instance',tf_attr:'flavor_name = "s1-2"'},
+  {cat:'Compute',provider:'OVH',name:'S1-4',cpu:2,ram:4,storage:10,price:7.00,hourly:0.0097,sovereign:true,tf:'ovh_cloud_project_instance',tf_attr:'flavor_name = "s1-4"'},
+  {cat:'Compute',provider:'OVH',name:'B2-7',cpu:2,ram:7,storage:50,price:22.40,hourly:0.0311,sovereign:true,tf:'ovh_cloud_project_instance',tf_attr:'flavor_name = "b2-7"'},
+  {cat:'Compute',provider:'Scaleway',name:'DEV1-S',cpu:2,ram:2,storage:20,price:2.99,hourly:0.0042,sovereign:true,tf:'scaleway_instance_server',tf_attr:'type = "DEV1-S"'},
+  {cat:'Compute',provider:'Scaleway',name:'DEV1-M',cpu:3,ram:4,storage:40,price:5.99,hourly:0.0083,sovereign:true,tf:'scaleway_instance_server',tf_attr:'type = "DEV1-M"'},
+  {cat:'Compute',provider:'Scaleway',name:'GP1-XS',cpu:4,ram:16,storage:150,price:14.99,hourly:0.0208,sovereign:true,tf:'scaleway_instance_server',tf_attr:'type = "GP1-XS"'},
+  {cat:'Compute',provider:'IONOS',name:'M (2vCPU/4GB)',cpu:2,ram:4,storage:20,price:10.30,hourly:0.0143,sovereign:true,tf:'ionoscloud_server',tf_attr:'cores = 2\n  ram = 4096'},
+  {cat:'Compute',provider:'IONOS',name:'L (4vCPU/8GB)',cpu:4,ram:8,storage:50,price:20.60,hourly:0.0286,sovereign:true,tf:'ionoscloud_server',tf_attr:'cores = 4\n  ram = 8192'},
+  {cat:'Compute',provider:'STACKIT',name:'t1.micro',cpu:1,ram:1,storage:10,price:1.10,hourly:0.0015,sovereign:true,tf:'stackit_server',tf_attr:'machine_type = "t1.micro"'},
+  {cat:'Compute',provider:'STACKIT',name:'c1.medium',cpu:4,ram:8,storage:50,price:8.80,hourly:0.0122,sovereign:true,tf:'stackit_server',tf_attr:'machine_type = "c1.medium"'},
+  {cat:'Compute',provider:'OTC',name:'s3.large.2 (2/8)',cpu:2,ram:8,storage:40,price:25.00,hourly:0.0347,sovereign:true,tf:'opentelekomcloud_compute_instance_v2',tf_attr:'flavor_name = "s3.large.2"'},
+  {cat:'Compute',provider:'OTC',name:'s3.medium.4 (1/4)',cpu:1,ram:4,storage:40,price:38.09,hourly:0.0529,sovereign:true,tf:'opentelekomcloud_compute_instance_v2',tf_attr:'flavor_name = "s3.medium.4"'},
+  {cat:'Compute',provider:'AWS',name:'t3.micro (2/1)',cpu:2,ram:1,storage:0,price:8.47,hourly:0.0117,sovereign:false,tf:'aws_instance',tf_attr:'instance_type = "t3.micro"'},
+  {cat:'Compute',provider:'AWS',name:'t3.medium (2/4)',cpu:2,ram:4,storage:0,price:33.87,hourly:0.0470,sovereign:false,tf:'aws_instance',tf_attr:'instance_type = "t3.medium"'},
+  {cat:'Compute',provider:'GCP',name:'e2-medium (2/4)',cpu:2,ram:4,storage:0,price:27.45,hourly:0.0381,sovereign:false,tf:'google_compute_instance',tf_attr:'machine_type = "e2-medium"'},
+  {cat:'Compute',provider:'Azure',name:'B2s (2/4)',cpu:2,ram:4,storage:0,price:32.12,hourly:0.0446,sovereign:false,tf:'azurerm_linux_virtual_machine',tf_attr:'size = "Standard_B2s"'},
+  // Storage
+  {cat:'Storage',provider:'Hetzner',name:'Volume (per 10GB)',unit:'10 GB',price:0.48,hourly:0.00067,sovereign:true,tf:'hcloud_volume',tf_attr:'size = 10'},
+  {cat:'Storage',provider:'Hetzner',name:'Volume 50GB',unit:'50 GB',price:2.38,hourly:0.0033,sovereign:true,tf:'hcloud_volume',tf_attr:'size = 50'},
+  {cat:'Storage',provider:'Hetzner',name:'Volume 100GB',unit:'100 GB',price:4.76,hourly:0.0066,sovereign:true,tf:'hcloud_volume',tf_attr:'size = 100'},
+  {cat:'Storage',provider:'OTC',name:'EVS SSD 50GB',unit:'50 GB SSD',price:2.50,hourly:0.0035,sovereign:true,tf:'opentelekomcloud_blockstorage_volume_v2',tf_attr:'size = 50\n  volume_type = "SSD"'},
+  {cat:'Storage',provider:'OTC',name:'EVS SSD 100GB',unit:'100 GB SSD',price:5.00,hourly:0.0069,sovereign:true,tf:'opentelekomcloud_blockstorage_volume_v2',tf_attr:'size = 100\n  volume_type = "SSD"'},
+  {cat:'Storage',provider:'OTC',name:'OBS Bucket',unit:'Object Storage',price:2.00,hourly:0.0028,sovereign:true,tf:'opentelekomcloud_obs_bucket',tf_attr:'bucket = "my-bucket"\n  storage_class = "STANDARD"'},
+  {cat:'Storage',provider:'IONOS',name:'SSD Volume 50GB',unit:'50 GB SSD',price:4.00,hourly:0.0056,sovereign:true,tf:'ionoscloud_volume',tf_attr:'size = 50\n  disk_type = "SSD"'},
+  {cat:'Storage',provider:'Scaleway',name:'Block 50GB',unit:'50 GB',price:2.50,hourly:0.0035,sovereign:true,tf:'scaleway_block_snapshot',tf_attr:'size = 50'},
+  {cat:'Storage',provider:'AWS',name:'S3 (standard/mo)',unit:'per 50GB',price:1.15,hourly:0.0016,sovereign:false,tf:'aws_s3_bucket',tf_attr:'bucket = "my-bucket"'},
+  {cat:'Storage',provider:'AWS',name:'EBS gp3 50GB',unit:'50 GB gp3',price:4.00,hourly:0.0056,sovereign:false,tf:'aws_ebs_volume',tf_attr:'size = 50\n  type = "gp3"'},
+  {cat:'Storage',provider:'Azure',name:'Managed Disk 128GB',unit:'128 GB',price:4.77,hourly:0.0066,sovereign:false,tf:'azurerm_managed_disk',tf_attr:'disk_size_gb = 128'},
+  // Network
+  {cat:'Network',provider:'Hetzner',name:'Floating IP',unit:'static IP',price:1.19,hourly:0.0017,sovereign:true,tf:'hcloud_floating_ip',tf_attr:'type = "ipv4"'},
+  {cat:'Network',provider:'OTC',name:'EIP (1Mbps)',unit:'EIP 1Mbps',price:3.17,hourly:0.0044,sovereign:true,tf:'opentelekomcloud_vpc_eip_v1',tf_attr:'bandwidth {\n    size = 1\n  }'},
+  {cat:'Network',provider:'OTC',name:'EIP (10Mbps)',unit:'EIP 10Mbps',price:16.06,hourly:0.0223,sovereign:true,tf:'opentelekomcloud_vpc_eip_v1',tf_attr:'bandwidth {\n    size = 10\n  }'},
+  {cat:'Network',provider:'Scaleway',name:'Flexible IP',unit:'static IP',price:0.00,hourly:0.0,sovereign:true,tf:'scaleway_flexible_ip',tf_attr:'type = "ipv4"'},
+  {cat:'Network',provider:'AWS',name:'Elastic IP',unit:'static IP',price:3.65,hourly:0.005,sovereign:false,tf:'aws_eip',tf_attr:'domain = "vpc"'},
+  {cat:'Network',provider:'GCP',name:'Static IP',unit:'static IP',price:2.19,hourly:0.003,sovereign:false,tf:'google_compute_address',tf_attr:'region = "europe-west3"'},
+  // Load Balancer
+  {cat:'LoadBalancer',provider:'Hetzner',name:'LB11',unit:'LB11',price:5.39,hourly:0.0075,sovereign:true,tf:'hcloud_load_balancer',tf_attr:'load_balancer_type = "lb11"'},
+  {cat:'LoadBalancer',provider:'Hetzner',name:'LB21',unit:'LB21',price:10.59,hourly:0.0147,sovereign:true,tf:'hcloud_load_balancer',tf_attr:'load_balancer_type = "lb21"'},
+  {cat:'LoadBalancer',provider:'OTC',name:'ELB (basic)',unit:'ELB',price:16.00,hourly:0.0222,sovereign:true,tf:'opentelekomcloud_lb_loadbalancer_v2',tf_attr:'vip_subnet_id = var.subnet_id'},
+  {cat:'LoadBalancer',provider:'AWS',name:'ALB',unit:'ALB',price:18.25,hourly:0.0253,sovereign:false,tf:'aws_lb',tf_attr:'internal = false\n  load_balancer_type = "application"'},
+  // Database
+  {cat:'Database',provider:'OTC',name:'RDS MySQL s3.medium.4',unit:'1vCPU/4GB',price:54.00,hourly:0.075,sovereign:true,tf:'opentelekomcloud_rds_instance_v3',tf_attr:'flavor = "rds.mysql.s3.medium.4"'},
+  {cat:'Database',provider:'OTC',name:'RDS PostgreSQL s3.large.2',unit:'2vCPU/8GB',price:90.00,hourly:0.125,sovereign:true,tf:'opentelekomcloud_rds_instance_v3',tf_attr:'flavor = "rds.pg.s3.large.2"'},
+  {cat:'Database',provider:'IONOS',name:'DBaaS PostgreSQL s',unit:'1vCPU/2GB',price:15.00,hourly:0.0208,sovereign:true,tf:'ionoscloud_pg_cluster',tf_attr:'cores = 1\n  ram = 2048'},
+  {cat:'Database',provider:'AWS',name:'RDS MySQL t3.micro',unit:'1vCPU/1GB',price:14.62,hourly:0.0203,sovereign:false,tf:'aws_db_instance',tf_attr:'instance_class = "db.t3.micro"\n  engine = "mysql"'},
+  {cat:'Database',provider:'Azure',name:'Azure SQL S0',unit:'10 DTU',price:14.72,hourly:0.0204,sovereign:false,tf:'azurerm_sql_database',tf_attr:'requested_service_objective_name = "S0"'},
+];
+
+let stack = [];
+let nextId = 1;
+
+function fmt2(n) { return Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt4(n) { return Number(n).toFixed(4); }
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast'), m = document.getElementById('toast-msg');
+  if (!t||!m) return; m.textContent = msg;
+  t.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-bold px-5 py-3 shadow-lg transition-all duration-300 pointer-events-none '+(isError?'bg-red-600':'bg-eu-blue');
+  t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0';},3000);
+}
+
+function getProvider() { return document.getElementById('sel-provider').value; }
+function getCategory() { return document.getElementById('sel-category').value; }
+
+function updateCategories() {
+  updateInstances();
+}
+
+function updateInstances() {
+  const prov = getProvider(), cat = getCategory();
+  const matches = ALL_RESOURCES.filter(r => r.provider === prov && r.cat === cat);
+  const sel = document.getElementById('sel-instance');
+  if (matches.length === 0) {
+    sel.innerHTML = '<option value="">— not available —</option>';
+    document.getElementById('preview-box').classList.add('hidden');
+    return;
+  }
+  sel.innerHTML = matches.map((r,i) => `<option value="${i}">${r.name}${r.unit?' ('+r.unit+')':''} — €${r.price.toFixed(2)}/mo</option>`).join('');
+  updatePreview();
+}
+
+function updatePreview() {
+  const prov = getProvider(), cat = getCategory();
+  const matches = ALL_RESOURCES.filter(r => r.provider === prov && r.cat === cat);
+  const idx = parseInt(document.getElementById('sel-instance').value)||0;
+  const r = matches[idx];
+  if (!r) { document.getElementById('preview-box').classList.add('hidden'); return; }
+  const qty = parseInt(document.getElementById('sel-qty').value)||1;
+  document.getElementById('preview-hourly').textContent = '€' + fmt4(r.hourly * qty);
+  document.getElementById('preview-monthly').textContent = '€' + fmt2(r.price * qty);
+  document.getElementById('preview-box').classList.remove('hidden');
+}
+
+function addResource() {
+  const prov = getProvider(), cat = getCategory();
+  const matches = ALL_RESOURCES.filter(r => r.provider === prov && r.cat === cat);
+  const idx = parseInt(document.getElementById('sel-instance').value)||0;
+  const r = matches[idx];
+  if (!r) { showToast('Select a resource first', true); return; }
+  const qty = Math.max(1, parseInt(document.getElementById('sel-qty').value)||1);
+  stack.push({ id: nextId++, resource: r, qty });
+  renderStack();
+  updateTFSnippet();
+  showToast(r.provider + ' ' + r.name + ' added.');
+}
+
+function removeResource(id) {
+  stack = stack.filter(s => s.id !== id);
+  renderStack();
+  updateTFSnippet();
+}
+
+function renderStack() {
+  const tbody = document.getElementById('stack-body');
+  const footer = document.getElementById('stack-footer');
+  const cards = document.getElementById('summary-cards');
+  const emptyRow = document.getElementById('empty-row');
+  if (stack.length === 0) {
+    tbody.innerHTML = `<tr id="empty-row"><td colspan="6" class="text-center py-12 text-xs text-gray-400"><i class="fa-solid fa-calculator text-gray-200 text-3xl mb-3 block"></i>Add resources from the left panel to start calculating.</td></tr>`;
+    footer.classList.add('hidden');
+    cards.classList.add('hidden');
+    return;
+  }
+  tbody.innerHTML = stack.map(s => {
+    const r = s.resource;
+    return `<tr class="border-b border-gray-50 hover:bg-gray-50">
+      <td class="px-4 py-3">
+        <p class="font-semibold text-eu-blue text-xs">${r.name}</p>
+        <p class="text-[10px] text-gray-400">${r.cat}</p>
+      </td>
+      <td class="px-4 py-3 text-xs text-gray-600 hidden sm:table-cell">
+        <span class="font-semibold ${r.sovereign?'text-eu-blue':'text-gray-400'}">${r.provider}</span>
+        ${r.sovereign?'<i class="fa-solid fa-shield-halved text-green-500 text-[10px] ml-1"></i>':'<i class="fa-solid fa-triangle-exclamation text-gray-300 text-[10px] ml-1"></i>'}
+      </td>
+      <td class="px-4 py-3 text-right text-xs text-gray-600">${s.qty}</td>
+      <td class="px-4 py-3 text-right text-xs font-mono text-gray-600">€${fmt4(r.hourly * s.qty)}</td>
+      <td class="px-4 py-3 text-right text-xs font-bold text-eu-blue tabular-nums">€${fmt2(r.price * s.qty)}</td>
+      <td class="px-2 py-3 no-print"><button onclick="removeResource(${s.id})" class="text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark"></i></button></td>
+    </tr>`;
+  }).join('');
+  const totalHourly = stack.reduce((s,i) => s + i.resource.hourly * i.qty, 0);
+  const totalMonthly = stack.reduce((s,i) => s + i.resource.price * i.qty, 0);
+  const totalQty = stack.reduce((s,i) => s + i.qty, 0);
+  const sovereignCount = stack.filter(i => i.resource.sovereign).reduce((s,i) => s + i.qty, 0);
+  document.getElementById('total-hourly').textContent = '€' + fmt4(totalHourly);
+  document.getElementById('total-monthly').textContent = '€' + fmt2(totalMonthly);
+  document.getElementById('total-qty').textContent = totalQty;
+  document.getElementById('card-monthly').textContent = '€' + fmt2(totalMonthly);
+  document.getElementById('card-annual').textContent = '€' + fmt2(totalMonthly * 12);
+  document.getElementById('card-resources').textContent = totalQty;
+  document.getElementById('card-sovereign').textContent = Math.round((sovereignCount/totalQty)*100) + '%';
+  footer.classList.remove('hidden');
+  cards.classList.remove('hidden');
+}
+
+function updateTFSnippet() {
+  if (stack.length === 0) {
+    document.getElementById('tf-snippet').textContent = 'Add resources to see Terraform code.';
+    return;
+  }
+  const lines = stack.map(s => {
+    const r = s.resource;
+    let block = `resource "${r.tf}" "${r.provider.toLowerCase()}_${r.cat.toLowerCase()}" {\n  ${r.tf_attr}`;
+    if (s.qty > 1) block += `\n  count = ${s.qty}`;
+    block += '\n}';
+    return block;
+  });
+  document.getElementById('tf-snippet').textContent = lines.join('\n\n');
+}
+
+function copyTF() {
+  const text = document.getElementById('tf-snippet').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!')).catch(() => showToast('Copy failed', true));
+}
+
+function clearStack() {
+  if (stack.length === 0) return;
+  if (!confirm('Clear all resources from the stack?')) return;
+  stack = [];
+  renderStack();
+  updateTFSnippet();
+}
+
+function exportPDF() {
+  document.getElementById('print-date').textContent = new Date().toLocaleDateString('de-DE',{year:'numeric',month:'long',day:'numeric'});
+  setTimeout(() => window.print(), 100);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  document.getElementById('sel-instance').addEventListener('change', updatePreview);
+  document.getElementById('sel-qty').addEventListener('input', updatePreview);
+  updateInstances();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_instance.expensive",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "expensive",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "instance_type": "p3.16xlarge",
+            "ami": "ami-12345678"
+          }
+        }
+      ]
+    }
+  }
+}
