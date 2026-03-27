@@ -125,10 +125,10 @@
 <!-- ═══════════════════════════════════════════════════════════
      MAIN WRAPPER
 ═══════════════════════════════════════════════════════════ -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
   <!-- MAIN CONTENT -->
-  <main id="main-content" class="flex-1 min-w-0">
+  <main id="main-content">
 
     <!-- ══════════════════════════════════════
          TAB: DASHBOARD
@@ -136,80 +136,103 @@
     <div id="tab-dashboard" class="tab-pane active">
 
       <!-- Dashboard Header -->
-      <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+      <div class="mb-8 flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4">
         <div>
-          <h1 class="text-3xl sm:text-4xl font-normal text-gray-900 leading-tight">
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-normal text-gray-900 leading-none tracking-tight">
             EuroOpenCost:<br/>
-            Fiscal Governance<br/>
+            <span class="text-gray-400">Fiscal Governance</span><br/>
             Dashboard
           </h1>
-          <p class="mt-2 text-sm text-gray-500 uppercase tracking-wider">CFO OFFICE</p>
+          <p class="mt-3 text-sm text-gray-500 uppercase tracking-widest">CFO OFFICE · EU CLOUD INTELLIGENCE</p>
         </div>
-        <div class="flex items-center gap-3">
-          <label for="plan-upload" class="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-50 focus:outline-none select-none">
-            <i class="fa-solid fa-upload mr-1.5 text-xs"></i>LOAD PLAN
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <label for="plan-upload" class="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2.5 text-sm font-medium hover:bg-gray-50 focus:outline-none select-none flex items-center gap-1.5">
+            <i class="fa-solid fa-upload text-xs"></i>LOAD PLAN
           </label>
           <input id="plan-upload" type="file" accept=".json" class="hidden" onchange="handleFileUpload(event)"/>
-          <a href="audit.html" class="bg-eu-blue text-white px-4 py-2 text-sm font-medium hover:bg-blue-900 transition-colors" style="text-decoration:none;">
-            DEPLOY
+          <a href="audit.html" class="bg-eu-blue text-white px-6 py-2.5 text-sm font-medium hover:bg-blue-900 transition-colors flex items-center gap-1.5" style="text-decoration:none;">
+            <i class="fa-solid fa-rocket text-xs"></i>DEPLOY
           </a>
         </div>
       </div>
 
-      <!-- Row 1: Provider Management + Sovereign Treasury -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- KPI Row -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-eu-border p-5 shadow-sm">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">TOTAL MONTHLY</div>
+          <div class="text-3xl font-light text-eu-blue tabular-nums">€40.90</div>
+          <div class="text-[11px] text-green-600 mt-1.5 flex items-center gap-1"><i class="fa-solid fa-arrow-down text-[9px]"></i>12% vs last month</div>
+        </div>
+        <div class="bg-white border border-eu-border p-5 shadow-sm">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">SOVEREIGN SCORE</div>
+          <div class="text-3xl font-light text-green-600 tabular-nums">94%</div>
+          <div class="text-[11px] text-gray-400 mt-1.5">EU Data Act compliant</div>
+        </div>
+        <div class="bg-white border border-eu-border p-5 shadow-sm">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">ACTIVE PROVIDERS</div>
+          <div class="text-3xl font-light text-eu-blue tabular-nums">4</div>
+          <div class="text-[11px] text-gray-400 mt-1.5">Hetzner · OTC · IONOS · STACKIT</div>
+        </div>
+        <div class="bg-white border border-eu-border p-5 shadow-sm">
+          <div class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">RESOURCES</div>
+          <div class="text-3xl font-light text-eu-blue tabular-nums">12</div>
+          <div class="text-[11px] text-gray-400 mt-1.5">Tracked this month</div>
+        </div>
+      </div>
+
+      <!-- Row 1: 3-col grid on large screens -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
         <!-- Provider Management -->
         <div class="bg-white border border-eu-border p-6 shadow-sm">
           <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">PROVIDER MANAGEMENT</h2>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-3">
             <!-- Hetzner -->
             <div onclick="selectProvider('hetzner')" class="border border-eu-blue bg-gray-50 p-4 flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow">
-              <div class="flex-1 flex items-center justify-center py-6">
-                <span class="text-2xl font-bold uppercase tracking-tighter text-[#d32f2f]">HETZNER</span>
+              <div class="flex-1 flex items-center justify-center py-5">
+                <span class="text-xl font-bold uppercase tracking-tighter text-[#d32f2f]">HETZNER</span>
               </div>
-              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
-                Hetzner: <span class="text-green-600 font-medium">Active</span>, <span id="hetzner-price">€14.80</span>/mo
+              <div class="text-xs text-gray-600 border-t border-gray-200 pt-2">
+                <span class="text-green-600 font-medium">Active</span> · <span id="hetzner-price">€14.80</span>/mo
               </div>
             </div>
             <!-- OTC -->
             <div onclick="selectProvider('otc')" class="border border-gray-200 p-4 flex flex-col justify-between cursor-pointer hover:border-eu-blue hover:shadow-md transition-all">
-              <div class="flex-1 flex items-center justify-center py-6 space-x-1">
-                <span class="text-3xl font-bold text-pink-600">T</span>
-                <span class="text-2xl font-bold text-gray-700">OTC</span>
+              <div class="flex-1 flex items-center justify-center py-5 space-x-1">
+                <span class="text-2xl font-bold text-pink-600">T</span>
+                <span class="text-xl font-bold text-gray-700">OTC</span>
               </div>
-              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
-                OTC: <span class="text-green-600 font-medium">Active</span>, <span id="otc-price">€14.80</span>/mo
+              <div class="text-xs text-gray-600 border-t border-gray-200 pt-2">
+                <span class="text-green-600 font-medium">Active</span> · <span id="otc-price">€14.80</span>/mo
               </div>
             </div>
             <!-- IONOS -->
             <div onclick="selectProvider('ionos')" class="border border-gray-200 p-4 flex flex-col justify-between cursor-pointer hover:border-eu-blue hover:shadow-md transition-all">
-              <div class="flex-1 flex items-center justify-center py-6">
-                <span class="text-2xl font-bold text-blue-900 tracking-widest">IONOS</span>
+              <div class="flex-1 flex items-center justify-center py-5">
+                <span class="text-xl font-bold text-blue-900 tracking-widest">IONOS</span>
               </div>
-              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
-                IONOS: <span class="text-green-600 font-medium">Active</span>, <span id="ionos-price">€10.30</span>/mo
+              <div class="text-xs text-gray-600 border-t border-gray-200 pt-2">
+                <span class="text-green-600 font-medium">Active</span> · <span id="ionos-price">€10.30</span>/mo
               </div>
             </div>
             <!-- STACKIT -->
             <div onclick="selectProvider('stackit')" class="border border-gray-200 p-4 flex flex-col justify-between cursor-pointer hover:border-eu-blue hover:shadow-md transition-all">
-              <div class="flex-1 flex items-center justify-center py-6">
-                <span class="text-2xl font-bold text-gray-900 tracking-tighter">STACKIT</span>
+              <div class="flex-1 flex items-center justify-center py-5">
+                <span class="text-xl font-bold text-gray-900 tracking-tighter">STACKIT</span>
               </div>
-              <div class="text-xs text-gray-600 mt-2 border-t border-gray-200 pt-2">
-                STACKIT: <span class="text-green-600 font-medium">Active</span>, <span id="stackit-price">€1.10</span>/mo
+              <div class="text-xs text-gray-600 border-t border-gray-200 pt-2">
+                <span class="text-green-600 font-medium">Active</span> · <span id="stackit-price">€1.10</span>/mo
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Right column: Sovereign Treasury + Analytics -->
-        <div class="space-y-6">
+        <!-- Middle: Sovereign Treasury + Analytics -->
+        <div class="space-y-4">
 
           <!-- SOVEREIGN TREASURY (Pro-locked) -->
           <div class="bg-white border border-eu-border p-6 shadow-sm relative overflow-hidden">
             <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">SOVEREIGN TREASURY &amp; GUARDRAILS</h2>
-            <!-- Real content when Pro -->
             <div id="sovtr-main" class="hidden space-y-0">
               <div class="flex justify-between items-center py-3 border-b border-gray-100">
                 <span class="text-xs text-gray-500 uppercase tracking-wider">Monthly Forecast</span>
@@ -228,19 +251,15 @@
                 <span id="sovtr-alerts" class="text-sm font-bold text-green-600">0</span>
               </div>
             </div>
-            <!-- Blurred placeholder (Community) -->
             <div id="sovtr-blur" class="space-y-4 filter blur-[2px] opacity-60">
               <div class="h-4 bg-gray-200 rounded w-3/4"></div>
               <div class="h-4 bg-gray-200 rounded w-1/2"></div>
               <div class="h-4 bg-gray-200 rounded w-5/6"></div>
               <div class="h-4 bg-gray-200 rounded w-2/3"></div>
             </div>
-            <!-- Premium Overlay -->
             <div id="sovtr-gate" class="absolute inset-0 flex flex-col items-center justify-center z-10 backdrop-blur-md bg-white/60">
               <p class="text-base font-bold text-gray-900 flex items-center justify-center mb-4">
-                <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>
-                PREMIUM ACCESS REQUIRED
-                <i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
+                <i class="fa-solid fa-lock text-yellow-500 mr-2"></i>PREMIUM ACCESS REQUIRED<i class="fa-solid fa-lock text-yellow-500 ml-2"></i>
               </p>
               <button onclick="navigate('settings')" class="bg-eu-blue text-white px-6 py-2 text-sm font-medium hover:bg-blue-900 transition-colors focus:outline-none">
                 UPGRADE TO PRO
@@ -252,9 +271,8 @@
           <div class="bg-white border border-eu-border p-6 shadow-sm">
             <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">ANALYTICS</h2>
             <div class="flex justify-between items-end">
-              <!-- Cost Trend -->
               <div class="w-1/2 pr-4">
-                <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Cost Trend</span></div>
+                <div class="text-xs text-gray-500 mb-1">Cost Trend</div>
                 <div class="h-20 border-b border-l border-gray-300 relative overflow-visible">
                   <svg class="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
                     <polyline fill="none" points="0,35 10,36 20,35 30,34 40,35 50,33 55,10 60,30 65,15 70,25 75,30 80,10 85,25 90,30 95,28 100,32" stroke="#2563eb" stroke-width="1.5"/>
@@ -264,7 +282,6 @@
                 </div>
                 <div class="flex justify-between text-[10px] text-gray-400 mt-1"><span>30d ago</span><span>Today</span></div>
               </div>
-              <!-- Sovereignty Status -->
               <div class="w-1/2 pl-4">
                 <div class="flex justify-between text-xs mb-1">
                   <span class="text-gray-500">EU Sovereignty:</span>
@@ -281,19 +298,98 @@
           </div>
 
         </div>
+
+        <!-- Right: Quick Actions + EU Status -->
+        <div class="space-y-4">
+
+          <!-- Quick Actions -->
+          <div class="bg-white border border-eu-border p-6 shadow-sm">
+            <h2 class="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-4">QUICK ACTIONS</h2>
+            <div class="space-y-2">
+              <a href="audit.html" class="flex items-center justify-between p-3 border border-gray-100 hover:border-eu-blue hover:bg-gray-50 transition-all group" style="text-decoration:none;">
+                <div class="flex items-center gap-3">
+                  <i class="fa-solid fa-magnifying-glass-chart text-eu-blue text-sm w-4 text-center"></i>
+                  <span class="text-sm font-medium text-gray-800">Audit Engine</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-300 text-xs group-hover:text-eu-blue transition-colors"></i>
+              </a>
+              <a href="ide.html" class="flex items-center justify-between p-3 border border-gray-100 hover:border-eu-blue hover:bg-gray-50 transition-all group" style="text-decoration:none;">
+                <div class="flex items-center gap-3">
+                  <i class="fa-solid fa-code text-eu-blue text-sm w-4 text-center"></i>
+                  <span class="text-sm font-medium text-gray-800">Web IDE</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-300 text-xs group-hover:text-eu-blue transition-colors"></i>
+              </a>
+              <a href="compare.html" class="flex items-center justify-between p-3 border border-gray-100 hover:border-eu-blue hover:bg-gray-50 transition-all group" style="text-decoration:none;">
+                <div class="flex items-center gap-3">
+                  <i class="fa-solid fa-scale-balanced text-eu-blue text-sm w-4 text-center"></i>
+                  <span class="text-sm font-medium text-gray-800">Compare Instances</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-300 text-xs group-hover:text-eu-blue transition-colors"></i>
+              </a>
+              <a href="calculator.html" class="flex items-center justify-between p-3 border border-gray-100 hover:border-eu-blue hover:bg-gray-50 transition-all group" style="text-decoration:none;">
+                <div class="flex items-center gap-3">
+                  <i class="fa-solid fa-calculator text-eu-blue text-sm w-4 text-center"></i>
+                  <span class="text-sm font-medium text-gray-800">Cost Calculator</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-300 text-xs group-hover:text-eu-blue transition-colors"></i>
+              </a>
+              <a href="infra.html" class="flex items-center justify-between p-3 border border-purple-100 hover:border-purple-400 hover:bg-purple-50 transition-all group" style="text-decoration:none;">
+                <div class="flex items-center gap-3">
+                  <i class="fa-solid fa-diagram-project text-purple-600 text-sm w-4 text-center"></i>
+                  <span class="text-sm font-medium text-gray-800">Infra Designer</span>
+                  <span class="text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 border border-purple-200">NEW</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-300 text-xs group-hover:text-purple-400 transition-colors"></i>
+              </a>
+              <a href="reporting.html" class="flex items-center justify-between p-3 border border-gray-100 hover:border-eu-blue hover:bg-gray-50 transition-all group" style="text-decoration:none;">
+                <div class="flex items-center gap-3">
+                  <i class="fa-solid fa-chart-bar text-eu-blue text-sm w-4 text-center"></i>
+                  <span class="text-sm font-medium text-gray-800">Reporting</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-300 text-xs group-hover:text-eu-blue transition-colors"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- EU Compliance Badge -->
+          <div class="bg-eu-blue p-6 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <i class="fa-solid fa-shield-halved text-blue-300 text-2xl"></i>
+              <div>
+                <div class="text-[10px] font-semibold text-blue-300 uppercase tracking-widest">EU SOVEREIGNTY</div>
+                <div class="text-white font-bold text-lg">CERTIFIED</div>
+              </div>
+            </div>
+            <div class="space-y-1.5 text-xs text-blue-200">
+              <div class="flex items-center gap-2"><i class="fa-solid fa-check text-green-400 text-[10px] w-3"></i>EU Data Act 2024</div>
+              <div class="flex items-center gap-2"><i class="fa-solid fa-check text-green-400 text-[10px] w-3"></i>GDPR Compliant</div>
+              <div class="flex items-center gap-2"><i class="fa-solid fa-check text-green-400 text-[10px] w-3"></i>Not US CLOUD Act exposed</div>
+              <div class="flex items-center gap-2"><i class="fa-solid fa-check text-green-400 text-[10px] w-3"></i>NIS2 aligned</div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
 
       <!-- Terminal -->
-      <div class="bg-eu-terminal-bg text-eu-terminal-text font-mono text-sm p-4 rounded-sm shadow-md">
+      <div class="bg-eu-terminal-bg text-eu-terminal-text font-mono text-sm p-5 shadow-md">
+        <div class="flex items-center gap-2 mb-3 border-b border-gray-700 pb-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+          <span class="text-gray-500 text-[10px] ml-2 uppercase tracking-widest">eucost terminal</span>
+        </div>
         <div id="terminal-lines">
           <div class="text-eu-terminal-green mb-1">&gt; eucost plan real-plan.json</div>
-          <div class="mb-1">Loading infrastructure state...</div>
-          <div class="mb-1">Plan generation complete.</div>
-          <div id="terminal-result" class="mb-2">+3 resources to add, ~€45.20/mo increase.</div>
+          <div class="mb-1 text-gray-400">Loading infrastructure state...</div>
+          <div class="mb-1 text-gray-400">Plan generation complete.</div>
+          <div id="terminal-result" class="mb-2 text-white">+3 resources to add, ~€45.20/mo increase.</div>
         </div>
-        <div class="flex items-center">
+        <div class="flex items-center text-eu-terminal-green">
           <span class="mr-2">&gt;</span>
-          <span class="w-2 h-4 bg-white animate-pulse"></span>
+          <span class="w-2 h-4 bg-eu-terminal-green animate-pulse"></span>
         </div>
       </div>
 
@@ -619,7 +715,7 @@
       <div class="bg-eu-blue p-6 shadow-sm">
         <div class="flex items-baseline gap-2 mb-3">
           <span class="text-xl font-bold text-white tracking-tight">EUCOST</span>
-          <span class="text-xs font-mono text-blue-300">v0.1.0</span>
+          <span class="text-xs font-mono text-blue-300">v1.0.0</span>
         </div>
         <p class="text-xs text-blue-200 mb-5 leading-relaxed">
           The open-source Terraform cost estimator for European cloud infrastructure.<br/>
@@ -642,82 +738,6 @@
   </main><!-- /main-content -->
 
 
-  <!-- ═══════════════════════════════════════════════════════════
-       RIGHT SIDEBAR (xl screens only, Dashboard tab)
-  ═══════════════════════════════════════════════════════════ -->
-  <aside id="right-sidebar" class="hidden xl:block w-[400px] flex-shrink-0 relative">
-    <div class="bg-white border border-gray-100 p-8 fixed right-0 top-0 h-full w-[400px] overflow-y-auto z-40 pt-24 pb-8 flex flex-col shadow-2xl">
-
-      <!-- Selected Node Header -->
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">SELECTED NODE</h3>
-          <h2 id="sidebar-node-name" class="text-3xl font-normal text-gray-800">CX21 Cluster</h2>
-        </div>
-        <button class="text-gray-400 hover:text-gray-600 transition-colors">
-          <i class="fa-solid fa-times text-xl"></i>
-        </button>
-      </div>
-
-      <!-- Infrastructure Origin -->
-      <div class="mb-8">
-        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">INFRASTRUCTURE ORIGIN</h3>
-        <div class="bg-gray-50 p-4 flex items-start space-x-3">
-          <i class="fa-solid fa-location-dot text-eu-blue mt-1"></i>
-          <div>
-            <div id="sidebar-location-name" class="font-medium text-gray-900 text-sm">Hetzner fsn1-dc14</div>
-            <div id="sidebar-location-city" class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">FALKENSTEIN, GERMANY</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Financial Metadata -->
-      <div class="mb-8">
-        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">FINANCIAL METADATA</h3>
-        <div class="flex space-x-4">
-          <div class="border border-gray-200 p-4 flex-1">
-            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">MONTHLY COST</div>
-            <div id="sidebar-monthly" class="text-2xl text-gray-800">€14.80</div>
-          </div>
-          <div class="border border-gray-200 p-4 flex-1">
-            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">HOURLY RATE</div>
-            <div id="sidebar-hourly" class="text-2xl text-gray-800">€0.02</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sovereignty Audit -->
-      <div class="mb-8">
-        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">SOVEREIGNTY AUDIT</h3>
-        <div id="sidebar-cert-box" class="border border-eu-blue p-4 flex items-start space-x-3">
-          <i class="fa-solid fa-shield-halved text-eu-blue mt-1"></i>
-          <div>
-            <div id="sidebar-cert-status" class="font-bold text-gray-900 text-sm tracking-wider">CERTIFIED</div>
-            <div class="text-xs text-gray-500 mt-1">Complies with EU Data Act 2024</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Node Configuration -->
-      <div class="mb-auto">
-        <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">NODE CONFIGURATION</h3>
-        <ul id="sidebar-config" class="text-sm divide-y divide-gray-100">
-          <li class="py-3 flex justify-between"><span class="text-gray-500">Type</span><span class="font-medium text-gray-900">CX21</span></li>
-          <li class="py-3 flex justify-between"><span class="text-gray-500">vCPU</span><span class="font-medium text-gray-900">2 Cores</span></li>
-          <li class="py-3 flex justify-between"><span class="text-gray-500">RAM</span><span class="font-medium text-gray-900">4 GB ECC</span></li>
-          <li class="py-3 flex justify-between border-b border-gray-100"><span class="text-gray-500">Networking</span><span class="font-medium text-gray-900">20 TB Traffic</span></li>
-        </ul>
-      </div>
-
-      <!-- Action Button -->
-      <div class="mt-8">
-        <a href="audit.html" class="w-full block text-center bg-eu-blue text-white py-4 text-sm font-medium tracking-widest uppercase hover:bg-blue-900 transition-colors focus:outline-none" style="text-decoration:none;">
-          MODIFY INSTANCE
-        </a>
-      </div>
-
-    </div>
-  </aside>
 
 </div><!-- /main wrapper -->
 
@@ -781,16 +801,6 @@ function navigate(tab) {
   });
 
   state.currentTab = tab;
-
-  // Show/hide sidebar — only on dashboard
-  const sidebar = document.getElementById('right-sidebar');
-  const mainEl  = document.getElementById('main-content');
-  if (tab === 'dashboard') {
-    if (sidebar) sidebar.classList.remove('xl:hidden');
-    if (mainEl)  mainEl.classList.remove('xl:pr-0-override');
-  } else {
-    if (sidebar) sidebar.classList.add('xl:hidden');
-  }
 
   // Handle Pro gates
   if (PRO_TABS.includes(tab)) {
@@ -1024,59 +1034,13 @@ function updateDashboardWithData(data) {
     if (byProvider.stackit && e('stackit-price')) e('stackit-price').textContent = '€' + fmt(byProvider.stackit);
   }
 
-  // Sidebar: show first resource
-  if (resources.length > 0) updateSidebar(resources[0]);
-
   // Policies breakdown
   updatePoliciesBreakdown(resources, score);
 }
 
-function updateSidebar(resource) {
-  if (!resource) return;
-  const e = id => document.getElementById(id);
-  const name = resource.name || resource.display_type || 'Unknown';
-
-  if (e('sidebar-node-name')) e('sidebar-node-name').textContent = name;
-
-  // Location mapping
-  const loc = providerToLocation(resource.provider || '');
-  if (e('sidebar-location-name')) e('sidebar-location-name').textContent = loc.name;
-  if (e('sidebar-location-city')) e('sidebar-location-city').textContent = loc.city;
-
-  // Costs
-  if (e('sidebar-monthly')) e('sidebar-monthly').textContent = '€' + (resource.monthly_price || '0.00');
-  if (e('sidebar-hourly'))  e('sidebar-hourly').textContent  = '€' + (resource.hourly_price  || '0.0000');
-
-  // Cert status
-  const eu = isEuProvider(resource.provider || '');
-  if (e('sidebar-cert-status')) e('sidebar-cert-status').textContent = eu ? 'CERTIFIED' : 'REVIEW NEEDED';
-  if (e('sidebar-cert-box')) {
-    e('sidebar-cert-box').className = eu
-      ? 'border border-eu-blue p-4 flex items-start space-x-3'
-      : 'border border-yellow-400 p-4 flex items-start space-x-3';
-  }
-
-  // Config: derive from display_type
-  const type = resource.display_type || resource.type || '—';
-  if (e('sidebar-config')) {
-    e('sidebar-config').innerHTML = `
-      <li class="py-3 flex justify-between"><span class="text-gray-500">Type</span><span class="font-medium text-gray-900">${escHtml(type)}</span></li>
-      <li class="py-3 flex justify-between"><span class="text-gray-500">Provider</span><span class="font-medium text-gray-900">${escHtml(loc.name)}</span></li>
-      <li class="py-3 flex justify-between"><span class="text-gray-500">Hourly</span><span class="font-medium text-gray-900">€${resource.hourly_price || '0.0000'}</span></li>
-      <li class="py-3 flex justify-between border-b border-gray-100"><span class="text-gray-500">Monthly</span><span class="font-medium text-gray-900">€${resource.monthly_price || '0.00'}</span></li>
-    `;
-  }
-}
-
 function selectProvider(provider) {
-  // Click on provider card → update sidebar with demo data for that provider
-  const demos = {
-    hetzner: { name: 'Hetzner CX21', provider: 'hetzner', display_type: 'hcloud_server CX21', monthly_price: '14.80', hourly_price: '0.0200' },
-    otc:     { name: 'OTC ECS s3.medium.4', provider: 'otc', display_type: 'ECS s3.medium.4', monthly_price: '38.09', hourly_price: '0.0529' },
-    ionos:   { name: 'IONOS Server', provider: 'ionos', display_type: 'ionoscloud_server', monthly_price: '10.30', hourly_price: '0.0143' },
-    stackit: { name: 'STACKIT Server', provider: 'stackit', display_type: 'stackit_server', monthly_price: '1.10', hourly_price: '0.0015' },
-  };
-  if (demos[provider]) updateSidebar(demos[provider]);
+  const labels = { hetzner: 'Hetzner · €14.80/mo', otc: 'OTC · €14.80/mo', ionos: 'IONOS · €10.30/mo', stackit: 'STACKIT · €1.10/mo' };
+  if (labels[provider]) showToast(labels[provider]);
 }
 
 function updatePoliciesBreakdown(resources, score) {
