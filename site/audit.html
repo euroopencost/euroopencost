@@ -135,7 +135,7 @@
       <div class="flex border border-t-0 border-eu-border shadow-sm" style="height: calc(100vh - 220px); min-height: 520px;">
 
         <!-- Left: Explorer + Analysis Info -->
-        <div class="w-44 bg-white border-r border-eu-border flex flex-col flex-shrink-0">
+        <div class="hidden md:flex w-44 bg-white border-r border-eu-border flex-col flex-shrink-0">
           <div class="px-3 py-2.5 border-b border-eu-border">
             <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">EXPLORER</span>
           </div>
@@ -164,7 +164,7 @@
         </div>
 
         <!-- Right: Cost Panel -->
-        <div class="w-60 bg-white border-l border-eu-border flex flex-col flex-shrink-0">
+        <div class="hidden md:flex w-60 bg-white border-l border-eu-border flex-col flex-shrink-0">
           <div class="px-4 py-2.5 border-b border-eu-border">
             <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">COST ANALYSIS</span>
           </div>
@@ -173,6 +173,9 @@
           </div>
         </div>
 
+      </div>
+      <div class="md:hidden mt-3 px-4 py-3 bg-blue-50 border border-blue-200 text-xs text-blue-700">
+        Full IDE view available on tablet and desktop.
       </div>
     </div>
 

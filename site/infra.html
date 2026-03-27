@@ -20,7 +20,10 @@
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
-  html, body { height:100%; overflow:hidden; }
+  html { height:100%; }
+  @media (min-width: 768px) {
+    html, body { overflow:hidden; }
+  }
   .nav-link { border-bottom:2px solid transparent; color:#6b7280; display:inline-flex; align-items:center; padding:4px; font-size:0.875rem; font-weight:500; text-decoration:none; cursor:pointer; transition:color 0.15s; white-space:nowrap; }
   .nav-link:hover { color:#374151; border-color:#d1d5db; }
   .nav-link.active { color:#111827; border-color:#0a1930; font-weight:600; }
@@ -110,7 +113,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="h-full overflow-hidden flex flex-col text-gray-800 font-sans antialiased bg-gray-50">
+<body class="h-full md:overflow-hidden flex flex-col text-gray-800 font-sans antialiased bg-gray-50">
 
 <!-- Header -->
 <header class="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b border-eu-border z-50">

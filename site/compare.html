@@ -114,10 +114,10 @@
   </div>
 
   <!-- Filters -->
-  <div id="filters" class="no-print bg-white border border-eu-border p-4 shadow-sm mb-0 flex flex-wrap gap-4 items-end border-b-0">
+  <div id="filters" class="no-print bg-white border border-eu-border p-4 shadow-sm mb-0 flex flex-col sm:flex-row sm:flex-wrap gap-4 items-end border-b-0">
     <div>
       <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Provider</label>
-      <select id="filter-provider" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+      <select id="filter-provider" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue w-full sm:w-auto">
         <option value="">All Providers</option>
         <option value="Hetzner">Hetzner</option>
         <option value="OVH">OVH</option>
@@ -132,7 +132,7 @@
     </div>
     <div>
       <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Min RAM</label>
-      <select id="filter-ram" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+      <select id="filter-ram" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue w-full sm:w-auto">
         <option value="0">Any</option>
         <option value="2">2 GB+</option>
         <option value="4">4 GB+</option>
@@ -142,7 +142,7 @@
     </div>
     <div>
       <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Max Price</label>
-      <select id="filter-price" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+      <select id="filter-price" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue w-full sm:w-auto">
         <option value="9999">Any</option>
         <option value="10">≤ €10</option>
         <option value="25">≤ €25</option>
@@ -159,7 +159,7 @@
     </div>
     <div class="ml-auto flex items-center gap-2">
       <span class="text-[10px] text-gray-400 uppercase tracking-wider">Sort by</span>
-      <select id="sort-by" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue">
+      <select id="sort-by" onchange="applyFilters()" class="border border-gray-300 text-xs px-2 py-1.5 bg-white focus:outline-none focus:border-eu-blue w-full sm:w-auto">
         <option value="price">Price</option>
         <option value="cpu">vCPU</option>
         <option value="ram">RAM</option>
