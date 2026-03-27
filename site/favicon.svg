@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="7" fill="#0a1945"/>
-  <!-- Bold € symbol, white -->
-  <text x="16" y="23" font-family="system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="21" font-weight="800" fill="white" text-anchor="middle" dominant-baseline="auto">€</text>
+  <!-- E from EURO, bold white -->
+  <text x="5" y="22" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="900" fill="white">E</text>
+  <!-- O from OPENCOST, thin white -->
+  <text x="16" y="22" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="300" fill="white">O</text>
 </svg>
